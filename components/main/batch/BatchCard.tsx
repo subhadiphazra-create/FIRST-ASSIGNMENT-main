@@ -35,7 +35,6 @@ import AddPlanDialog from "./AddPlanDialog";
 import { findNameById } from "@/lib/employeeUtils";
 import { useRouter } from "next/navigation";
 import ViewAssignmentDialog from "@/components/calendar/components/dialogs/view-assignment-dialog";
-import ViewAttendanceDialog from "../attandance/ViewAttandance";
 
 interface BatchCardProps {
   batch: Batch;
@@ -48,7 +47,7 @@ export default function BatchCard({ batch }: BatchCardProps) {
   const [showMarksDialog, setShowMarksDialog] = useState(false);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [showAddAssgDialog, setShowAddAssgDialog] = useState(false);
-  const [ showAttandanceDialog,setShowAttandanceDialog ] = useState(false);
+  const [showAttandanceDialog, setShowAttandanceDialog] = useState(false);
 
   const router = useRouter();
   const checkIsComplete = (endDate: string) => {
@@ -70,7 +69,7 @@ export default function BatchCard({ batch }: BatchCardProps) {
     },
     {
       label: "Attandance Details",
-      action: () => setShowAttandanceDialog(true),
+      action: () => router.push(`/${batchId}/attandance-details`),
       icon: <SquarePlus size={16} />,
     },
     { label: "Open Folder", action: () => {}, icon: <FolderOpen size={16} /> },
@@ -196,12 +195,6 @@ export default function BatchCard({ batch }: BatchCardProps) {
         <ViewAssignmentDialog
           isOpen={showAddAssgDialog}
           onClose={() => setShowAddAssgDialog(false)}
-        />
-      )}
-      {showAttandanceDialog && (
-        <ViewAttendanceDialog
-          isOpen={showAttandanceDialog}
-          onClose={() => setShowAttandanceDialog(false)}
         />
       )}
     </>

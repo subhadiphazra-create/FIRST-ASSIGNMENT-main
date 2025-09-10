@@ -13,7 +13,7 @@ interface IProps {
   eventPositions: Record<string, number>;
 }
 
-const MAX_VISIBLE_EVENTS = 3;
+const MAX_VISIBLE_EVENTS = 2;
 
 export function DayCell({ cell, events, eventPositions }: IProps) {
   const { day, currentMonth, date } = cell;

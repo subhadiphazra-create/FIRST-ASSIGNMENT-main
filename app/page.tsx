@@ -1,15 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { Batch } from "@/types/type";
 import { Input } from "@/components/ui/input";
 import AppTraineeDialog from "@/components/main/AppTraineeDialog";
 import { mockEmployees } from "@/constants";
 import ShowCards from "@/components/main/ShowCards";
+import { useRouter } from "next/navigation";
+import { removeBatch } from "@/store/trainingSlice";
 
 const Home = () => {
+  const router = useRouter();
+  const dispatch = useDispatch();
   const [search, setSearch] = useState("");
   const batches = useSelector((state: RootState) => state.training.batches);
 
@@ -33,12 +37,21 @@ const Home = () => {
       <div>
         <h1 className="text-xl font-semibold">All Batches</h1>
       </div>
-      <div className="flex flex-col gap-4 overflow-x-auto scroll-bar-hide">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
         {filteredBatches?.length === 0 ? (
           <h1>No Data Found</h1>
         ) : (
-          filteredBatches?.map((batch: Batch) => (
-            <ShowCards key={batch.batchId} batch={batch} />
+          filteredBatches?.map((batch: Batch, index) => (
+            <ShowCards
+              key={index}
+              id={batch.batchId}
+              description={batch.courseDescription}
+              title={batch.batchTitle}
+              createdAt={batch.uploadDate}
+              onDelete={(id) => dispatch(removeBatch(id))}
+              confirmTitle="Delete Batch?"
+              onClick={() => router.push(`/${batch.batchId}`)}
+            />
           ))
         )}
       </div>

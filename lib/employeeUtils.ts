@@ -12,3 +12,12 @@ export function findNameById(id: string): string {
     .filter(Boolean)
     .join(" ");
 }
+
+
+
+export function findEmailById(id: string): string {
+  const trainee = mockEmployees.find((e) => e.userId === id);
+
+  if (!trainee) return "Unknown";
+  return trainee.basicData.orgEmail
+}

@@ -45,7 +45,7 @@ export default function BatchDetails() {
 
         <div className="w-full">
           <CalendarProvider events={events} users={users}>
-            <div className="mx-auto flex max-w-screen-2xl flex-col gap-4 p-4">
+            <div className="mx-auto flex max-w-screen-2xl flex-col  gap-4 p-4">
               <ClientContainer view={view} onChangeView={setView} />
             </div>
           </CalendarProvider>

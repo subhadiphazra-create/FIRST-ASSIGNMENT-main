@@ -146,15 +146,15 @@ export interface PlanTopic {
     size?: number;
     type?: string;
   }[];
-  updatedAt?:string;
-  createdAt?:string;
+  updatedAt?: string;
+  createdAt?: string;
 }
 
 export interface TrainingPlan {
   planId: string;
   planTitle: string;
   planStartDate: string;
-  planEndDate:string,
+  planEndDate: string;
   planStartTime: string;
   planEndTime: string;
   planTopics: PlanTopic[];
@@ -170,17 +170,15 @@ export interface TrainingPlan {
     | "orange"
     | "gray"
     | undefined;
-  totalDurationInDays:number;
-  batchId:string;
+  totalDurationInDays: number;
+  batchId: string;
 }
 
-
-export interface Attendance{
-  attendanceId:string,
-  attendanceDate:string;
-  isPresent:boolean;
-  traineeList:string[];
-  planId:string;
-  createdAt:string;
-  updatedAt:string;
+export interface Attendance {
+  attendanceId: string;
+  attendanceDate: string;
+  planId: string;
+  traineeList: Record<string, "present" | "absent" | "leave">;
+  createdAt: string;
+  updatedAt: string;
 }

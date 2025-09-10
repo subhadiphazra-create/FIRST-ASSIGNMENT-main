@@ -4,33 +4,26 @@ import { useEffect, useMemo, useState } from "react";
 import { nanoid } from "@reduxjs/toolkit";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "next/navigation";
-import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+  Calendar as CalendarIcon,
+  Check,
+  X,
+  AlertCircle,
+  Users,
+  CheckCheck,
+} from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
-import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -42,198 +35,287 @@ import {
 
 import { RootState } from "@/store";
 import { addAttendance, updateAttendance } from "@/store/attendanceSlice";
-import { findNameById } from "@/lib/employeeUtils";
 import { Attendance } from "@/types/type";
-import { attendanceSchema, TAttendanceFormData } from "@/components/calendar/schemas";
+import {
+  attendanceSchema,
+  TAttendanceFormData,
+} from "@/components/calendar/schemas";
+import { findEmailById, findNameById } from "@/lib/employeeUtils";
+import { Badge } from "@/components/ui/badge";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface IProps {
-  isOpen: boolean;
-  onClose: () => void;
-  editingAttendance?: Attendance;
+  planId: string;
 }
 
-export function AddAttendanceDialog({
-  isOpen,
-  onClose,
-  editingAttendance,
-}: IProps) {
+export function AddAttendance({ planId }: IProps) {
   const dispatch = useDispatch();
-  const batches = useSelector((state: RootState) => state.training.batches);
-  const plans = useSelector((state: RootState) => state.plans.plans);
-
   const { batchId } = useParams();
 
-  const batch = useMemo(
-    () => batches.find((b) => b.batchId === batchId),
-    [batches, batchId]
+  const plans = useSelector((state: RootState) => state.plans.plans);
+  const batches = useSelector((state: RootState) => state.training.batches);
+  const attendances = useSelector(
+    (state: RootState) => state.attendances.attendances
   );
 
-  // 🔹 Trainee List from batch
+  const plan = plans.find((p) => p.planId === planId);
+  const batch = batches.find((b) => b.batchId === batchId);
+
   const trainees = useMemo(() => batch?.batchTrainee || [], [batch]);
-
-  // 🔹 Local state for attendance (present/absent)
-  const [attendanceMap, setAttendanceMap] = useState<Record<string, boolean>>(
-    {}
-  );
 
   const form = useForm<TAttendanceFormData>({
     resolver: zodResolver(attendanceSchema),
     defaultValues: {
-      planId: editingAttendance ? editingAttendance.planId : "",
-      attendanceDate: editingAttendance
-        ? new Date(editingAttendance.attendanceDate)
-        : new Date(),
+      planId: planId,
+      attendanceDate: new Date(),
     },
   });
 
+  const [attendanceMap, setAttendanceMap] = useState<
+    Record<string, "present" | "leave" | "absent">
+  >({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // Watch date selection
+  const selectedDate = form.watch("attendanceDate");
+
+  // Find existing attendance for this date & plan
+  const existingAttendance = attendances.find(
+    (a) =>
+      a.planId === planId &&
+      new Date(a.attendanceDate).toDateString() === selectedDate?.toDateString()
+  );
+
   useEffect(() => {
-    const map: Record<string, boolean> = {};
-    trainees.forEach((t) => {
-      map[t] = editingAttendance
-        ? editingAttendance.traineeList.includes(t)
-        : false;
+    const map: Record<string, "present" | "leave" | "absent"> = {};
+    trainees.forEach((tId) => {
+      if (existingAttendance) {
+        map[tId] = existingAttendance.traineeList[tId] || "absent";
+      } else {
+        map[tId] = "absent"; // default absent
+      }
     });
     setAttendanceMap(map);
-  }, [editingAttendance, trainees]);
+  }, [existingAttendance, trainees]);
 
-  const toggleAttendance = (id: string) => {
-    setAttendanceMap((prev) => ({ ...prev, [id]: !prev[id] }));
+  const updateStatus = (id: string, status: "present" | "leave" | "absent") => {
+    setAttendanceMap((prev) => ({ ...prev, [id]: status }));
   };
 
-  const onSubmit = (values: TAttendanceFormData) => {
-    const presentStudents = Object.keys(attendanceMap).filter(
-      (id) => attendanceMap[id]
-    );
-
+  const handleConfirm = (values: TAttendanceFormData) => {
     const attendance: Attendance = {
-      attendanceId: editingAttendance
-        ? editingAttendance.attendanceId
+      attendanceId: existingAttendance
+        ? existingAttendance.attendanceId
         : nanoid(),
       planId: values.planId,
       attendanceDate: values.attendanceDate.toISOString(),
-      isPresent: true, // keep for compatibility
-      traineeList: presentStudents,
-      createdAt: editingAttendance
-        ? editingAttendance.createdAt
+      traineeList: attendanceMap, // ✅ full status map
+      createdAt: existingAttendance
+        ? existingAttendance.createdAt
         : new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    if (editingAttendance) {
+    if (existingAttendance) {
       dispatch(updateAttendance(attendance));
     } else {
       dispatch(addAttendance(attendance));
     }
 
-    onClose();
+    setConfirmOpen(false);
   };
 
+  // Stats
+  const presentCount = Object.values(attendanceMap).filter(
+    (v) => v === "present"
+  ).length;
+  const leaveCount = Object.values(attendanceMap).filter(
+    (v) => v === "leave"
+  ).length;
+  const absentCount = Object.values(attendanceMap).filter(
+    (v) => v === "absent"
+  ).length;
+  const totalCount = trainees.length;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {editingAttendance ? "Edit Attendance" : "Add Attendance"}
-          </DialogTitle>
-        </DialogHeader>
+    <div className="space-y-6">
+      {/* Top Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="shadow-sm">
+          <CardHeader className="font-bold">Select Date</CardHeader>
+          <CardContent>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? selectedDate.toDateString() : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(d) =>
+                    form.setValue("attendanceDate", d ?? new Date(), {
+                      shouldValidate: true, // ✅ validate instantly
+                      shouldTouch: true,
+                    })
+                  }
+                />
+              </PopoverContent>
+            </Popover>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Plan Dropdown */}
-            <FormField
-              control={form.control}
-              name="planId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Plan</FormLabel>
-                  <FormControl>
-                    <select
-                      className="border rounded px-2 py-1 w-full"
-                      value={field.value}
-                      onChange={(e) => field.onChange(e.target.value)}
-                    >
-                      <option value="">Select a plan</option>
-                      {plans.map((p) => (
-                        <option key={p.planId} value={p.planId}>
-                          {p.planTitle}
-                        </option>
-                      ))}
-                    </select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* ✅ Show validation error */}
+            {form.formState.errors.attendanceDate && (
+              <p className="text-sm text-red-500 mt-2">
+                {form.formState.errors.attendanceDate.message}
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
-            {/* Attendance Table */}
-            <div>
-              <FormLabel>Mark Attendance</FormLabel>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Present</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {trainees.map((tId) => (
-                    <TableRow key={tId}>
-                      <TableCell>{findNameById(tId)}</TableCell>
-                      <TableCell>
-                        <Switch
-                          checked={attendanceMap[tId] || false}
-                          onCheckedChange={() => toggleAttendance(tId)}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+        <Card className="shadow-sm">
+          <CardHeader className="font-bold">Select Training Plan</CardHeader>
+          <CardContent>
+            <Badge>
+              <p className="text-sm font-medium">{plan?.planTitle}</p>
+            </Badge>
+          </CardContent>
+        </Card>
+      </div>
 
-            {/* Attendance Date */}
-            <FormField
-              control={form.control}
-              name="attendanceDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full justify-start text-left"
-                        >
-                          {field.value
-                            ? field.value.toDateString()
-                            : "Pick a date"}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={(d) => field.onChange(d ?? field.value)}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <DialogFooter>
-              <Button type="submit">
-                {editingAttendance ? "Update Attendance" : "Save Attendance"}
+      {/* Attendance Table */}
+      <Card className="shadow-sm">
+        <CardHeader className="font-medium flex justify-between">
+          <span>
+            Mark Attendance - {selectedDate?.toDateString()} - {plan?.planTitle}
+          </span>
+          <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => form.trigger()}>
+                {existingAttendance ? "Update Attendance" : "Add Attendance"}
               </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {existingAttendance ? "Update Attendance" : "Add Attendance"}
+                </DialogTitle>
+                <DialogDescription>
+                  {existingAttendance
+                    ? "Do you really want to update this attendance record?"
+                    : "Do you really want to add this attendance record?"}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="default"
+                  onClick={form.handleSubmit(handleConfirm)}
+                >
+                  Yes, Do it
+                </Button>
+                <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+                  Cancel
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Attendance Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {trainees.map((tId) => {
+                return (
+                  <TableRow key={tId}>
+                    <TableCell>{findNameById(tId) || "Unknown"}</TableCell>
+                    <TableCell>{findEmailById(tId) || "N/A"}</TableCell>
+                    <TableCell className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant={
+                          attendanceMap[tId] === "present"
+                            ? "default"
+                            : "outline"
+                        }
+                        onClick={() => updateStatus(tId, "present")}
+                      >
+                        <Check className="mr-1 h-4 w-4" /> Present
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={
+                          attendanceMap[tId] === "leave" ? "default" : "outline"
+                        }
+                        onClick={() => updateStatus(tId, "leave")}
+                      >
+                        <AlertCircle className="mr-1 h-4 w-4" /> Leave
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={
+                          attendanceMap[tId] === "absent"
+                            ? "destructive"
+                            : "outline"
+                        }
+                        onClick={() => updateStatus(tId, "absent")}
+                      >
+                        <X className="mr-1 h-4 w-4" /> Absent
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="flex flex-col items-center justify-center py-4 shadow-sm">
+          <div className="flex gap-3">
+            <CheckCheck className="text-green-500 mb-1" /> <span>Present</span>
+          </div>
+          <p className="text-lg font-bold">{presentCount}</p>
+        </Card>
+        <Card className="flex flex-col items-center justify-center py-4 shadow-sm">
+          <div className="flex gap-3">
+            <AlertCircle className="text-yellow-500 mb-1" /> <span>Leave</span>
+          </div>
+          <p className="text-lg font-bold">{leaveCount}</p>
+        </Card>
+        <Card className="flex flex-col items-center justify-center py-4 shadow-sm">
+          <div className="flex gap-3">
+            <X className="text-red-500 mb-1" /> <span>Absent</span>
+          </div>
+          <p className="text-lg font-bold">{absentCount}</p>
+        </Card>
+        <Card className="flex flex-col items-center justify-center py-4 shadow-sm">
+          <div className="flex gap-3">
+            <Users className="text-gray-500 mb-1" /> <span>Total</span>
+          </div>
+          <p className="text-lg font-bold">{totalCount}</p>
+        </Card>
+      </div>
+    </div>
   );
 }

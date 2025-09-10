@@ -1,11 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useDispatch } from "react-redux";
+import { useState, ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Batch } from "@/types/type";
-import { Trash2 } from "lucide-react";
-
+import { Clock, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -13,49 +10,87 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { removeBatch } from "@/store/trainingSlice";
 import { useTimeAgo } from "@/hooks/useTimeAgo";
-import { useRouter } from "next/navigation";
 
-type ShowCardProps = {
-  batch: Batch;
+type ShowEntityCardProps = {
+  id: string;
+  title: string;
+  createdAt: string;
+  onDelete: (id: string) => void;
+  description?: string;
+  onClick?: () => void;
+  confirmTitle?: string;
+  extraContent?:
+    | ReactNode
+    | ((isOpen: boolean, onClose: (open: boolean) => void) => ReactNode);
 };
 
-export default function ShowCards({ batch }: ShowCardProps) {
+export default function ShowCards({
+  id,
+  title,
+  createdAt,
+  description,
+  onDelete,
+  onClick,
+  confirmTitle = "Delete Item?",
+  extraContent,
+}: ShowEntityCardProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const dispatch = useDispatch();
-  const router = useRouter();
-  const deleteCard = () => {
-    dispatch(removeBatch(batch.batchId));
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  const timeAgoText = useTimeAgo(createdAt);
+
+  const handleDelete = () => {
+    onDelete(id);
     setConfirmOpen(false);
   };
-
-  const timeAgoText = useTimeAgo(batch.uploadDate);
 
   return (
     <div>
       {/* Card */}
       <Card
         className="w-full cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => router.push(`/${batch.batchId}`)}
+        onClick={() => {
+          if (extraContent) {
+            setDetailsOpen(true);
+          } else if (onClick) {
+            onClick();
+          }
+        }}
       >
-        <div className="flex items-center justify-between">
-          <CardContent>
-            <h1 className="text-xl font-bold font-sans text-gray-900 dark:text-gray-100">
-              {batch.batchTitle}
-            </h1>
-            <p className="text-sm text-gray-400">{timeAgoText}</p>
-          </CardContent>
-          <div
-            className="pr-4"
-            onClick={(e) => {
-              e.stopPropagation();
-              setConfirmOpen(true); // 🔔 Open delete confirmation dialog
-            }}
-          >
-            <Trash2 />
+        <CardContent className="p-4">
+          {/* Header Row */}
+          <div className="flex items-start justify-between">
+            {/* Title + Time */}
+            <div>
+              <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                {title}
+              </h1>
+              <p className="text-sm flex items-center gap-2 text-gray-400">
+                <Clock size={12} /> {timeAgoText}
+              </p>
+            </div>
+
+            {/* Delete Button */}
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmOpen(true);
+              }}
+            >
+              <Trash2 size={16} />
+            </Button>
           </div>
-        </div>
+
+          {/* Description */}
+          {description && (
+            <p className="mt-3 text-sm text-gray-700 dark:text-gray-300">
+              {description}
+            </p>
+          )}
+        </CardContent>
       </Card>
 
       {/* Confirm Delete Dialog */}
@@ -63,23 +98,29 @@ export default function ShowCards({ batch }: ShowCardProps) {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-red-600">
-              Delete Batch?
+              {confirmTitle}
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-600">
-            Are you sure you want to delete <b>{batch.batchTitle}</b>? This
-            action cannot be undone.
+            Are you sure you want to delete <b>{title}</b>? This action cannot
+            be undone.
           </p>
           <div className="flex justify-end gap-3 mt-4">
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={deleteCard}>
+            <Button variant="destructive" onClick={handleDelete}>
               Yes, Delete
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Extra Dialog / Content */}
+      {extraContent &&
+        (typeof extraContent === "function"
+          ? extraContent(detailsOpen, setDetailsOpen)
+          : extraContent)}
     </div>
   );
 }

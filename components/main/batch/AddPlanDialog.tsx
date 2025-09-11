@@ -50,6 +50,7 @@ import { addEvents, removeEventsByPlan } from "@/store/eventsSlice"; // ✅ impo
 import { useParams } from "next/navigation";
 import { HOLIDAY_DATES } from "@/constants/index";
 import { CirclePlus } from "lucide-react";
+import { addActivity } from "@/store/activitySlice";
 
 // 🔹 Identify day type
 function getDayType(date: Date): "holiday" | "sunday" | "saturday" | "working" {
@@ -181,6 +182,16 @@ export default function AddPlanDialog({ isOpen, onClose, plan }: Props) {
     if (plan) {
       // ✅ update plan
       dispatch(updatePlan(newPlan));
+      
+      dispatch(
+        addActivity({
+          batchId: batchId as string || "",
+          userId: "U101",
+          action: "updated",
+          activityText: `Plan ${values.planTitle} was updated.`,
+          actionDate: new Date().toISOString(),
+        })
+      );
 
       // remove old events for this plan
       dispatch(removeEventsByPlan({ planId: plan.planId }));
@@ -194,6 +205,15 @@ export default function AddPlanDialog({ isOpen, onClose, plan }: Props) {
 
       const topicEvents = expandPlanToEvents(newPlan);
       dispatch(addEvents(topicEvents));
+      dispatch(
+        addActivity({
+          batchId: batchId as string || "",
+          userId: "U101",
+          action: "created",
+          activityText: `Plan ${values.planTitle} was created on this batch.`,
+          actionDate: new Date().toISOString(),
+        })
+      );
     }
 
     form.reset();

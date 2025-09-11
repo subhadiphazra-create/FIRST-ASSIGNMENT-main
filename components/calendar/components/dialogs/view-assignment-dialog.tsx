@@ -24,6 +24,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { IAssignment } from "@/components/calendar/interfaces";
 import { removeAssignment } from "@/store/assignmentSlice";
 import { AddAssignmentDialog } from "./add-assignment-dialog";
+import { useParams } from "next/navigation";
+import { addActivity } from "@/store/activitySlice";
+import { findPlanNameById } from "@/lib/findPlanNameById";
 
 interface IProps {
   isOpen: boolean;
@@ -41,8 +44,20 @@ const ViewAssignmentDialog = ({ isOpen, onClose }: IProps) => {
     IAssignment | undefined
   >(undefined);
 
-  const handleRemove = (id: string) => {
+  const params = useParams();
+  const batchId = params?.batchId;
+
+  const handleRemove = (id: string,name:string) => {
     dispatch(removeAssignment({ id }));
+    dispatch(
+      addActivity({
+        batchId: (batchId as string) || "",
+        userId: "U101",
+        action: "deleted",
+        activityText: `Assignment ${name} was deleted for plan.`,
+        actionDate: new Date().toISOString(),
+      })
+    );
   };
 
   return (
@@ -82,8 +97,12 @@ const ViewAssignmentDialog = ({ isOpen, onClose }: IProps) => {
                         : t.name}
                     </TableCell>
                     <TableCell>{t.status}</TableCell>
-                    <TableCell>{format(new Date(t.startDate), "MMM d, yyyy")}</TableCell>
-                    <TableCell>{format(new Date(t.endDate), "MMM d, yyyy")}</TableCell>
+                    <TableCell>
+                      {format(new Date(t.startDate), "MMM d, yyyy")}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(t.endDate), "MMM d, yyyy")}
+                    </TableCell>
                     <TableCell>{findNameById(t.trainerId)}</TableCell>
                     <TableCell>
                       {t.resources && t.resources.length > 0 ? (
@@ -121,7 +140,7 @@ const ViewAssignmentDialog = ({ isOpen, onClose }: IProps) => {
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => handleRemove(t.id)}
+                        onClick={() => handleRemove(t.id,t.name)}
                       >
                         Remove
                       </Button>

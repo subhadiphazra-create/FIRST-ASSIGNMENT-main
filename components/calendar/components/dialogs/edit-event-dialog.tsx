@@ -50,6 +50,9 @@ import { useCalendar } from "../../contexts/calendar-context";
 import { IEvent } from "../../interfaces";
 import { RootState } from "@/store";
 import { PlanTopic } from "@/types/type";
+import { addActivity } from "@/store/activitySlice";
+import { useParams } from "next/navigation";
+import { findPlanNameById } from "@/lib/findPlanNameById";
 
 interface IProps {
   children: React.ReactNode;
@@ -60,6 +63,8 @@ export function EditEventDialog({ children, event }: IProps) {
   const dispatch = useDispatch();
   const { users } = useCalendar();
   const [open, setOpen] = useState(false);
+  const params = useParams();
+  const batchId = params?.batchId;
 
   const currentEvent = useSelector((state: RootState) =>
     state.events.events.find((e) => e.id === event.id)
@@ -146,6 +151,16 @@ export function EditEventDialog({ children, event }: IProps) {
         planId: currentEvent.planId,
         topicId: currentEvent.topicId,
         topicDescription: values.description,
+      })
+    );
+
+    dispatch(
+      addActivity({
+        batchId: (batchId as string) || "",
+        userId: "U101",
+        action: "updated",
+        activityText: `Topic ${values.title} was updated for plan ${findPlanNameById(currentEvent.planId,plans)}.`,
+        actionDate: new Date().toISOString(),
       })
     );
 

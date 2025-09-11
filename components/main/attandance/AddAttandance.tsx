@@ -52,6 +52,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { addActivity } from "@/store/activitySlice";
+import { findPlanNameById } from "@/lib/findPlanNameById";
 
 interface IProps {
   planId: string;
@@ -127,8 +129,32 @@ export function AddAttendance({ planId }: IProps) {
 
     if (existingAttendance) {
       dispatch(updateAttendance(attendance));
+      dispatch(
+        addActivity({
+          batchId: (batchId as string) || "",
+          userId: "U101",
+          action: "updated",
+          activityText: `Attandance was updated for plan ${findPlanNameById(
+            planId,
+            plans
+          )}.`,
+          actionDate: new Date().toISOString(),
+        })
+      );
     } else {
       dispatch(addAttendance(attendance));
+      dispatch(
+        addActivity({
+          batchId: (batchId as string) || "",
+          userId: "U101",
+          action: "created",
+          activityText: `Attandance was added for plan ${findPlanNameById(
+            planId,
+            plans
+          )}.`,
+          actionDate: new Date().toISOString(),
+        })
+      );
     }
 
     setConfirmOpen(false);

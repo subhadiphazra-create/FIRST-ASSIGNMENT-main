@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 
 import { Batch, Employees } from "@/types/type";
 import { SmartSelect } from "../ui/multi-select";
+import { addActivity } from "@/store/activitySlice";
 
 type Props = { employees: Employees };
 
@@ -58,6 +59,15 @@ export default function AppTraineeDialog({ employees }: Props) {
 
   const onSubmit = (data: Batch) => {
     dispatch(addBatch(data));
+    dispatch(
+      addActivity({
+        batchId: data.batchId || "",
+        userId: "U101",
+        action: "created",
+        activityText: `Topic ${data.batchTitle} was added.`,
+        actionDate: new Date().toISOString(),
+      })
+    );
     setOpen(false);
     reset();
   };

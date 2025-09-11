@@ -46,7 +46,9 @@ import { RootState } from "@/store";
 import { assignmentSchema, TAssignmentFormData } from "../../schemas";
 import { mockEmployees } from "@/constants";
 import { IResource, IAssignment } from "../../interfaces";
-import { CirclePlus } from "lucide-react";
+import { addActivity } from "@/store/activitySlice";
+import { useParams } from "next/navigation";
+import { findPlanNameById } from "@/lib/findPlanNameById";
 
 interface IProps {
   isOpen: boolean;
@@ -62,6 +64,8 @@ export function AddAssignmentDialog({
   const dispatch = useDispatch();
   const plans = useSelector((state: RootState) => state.plans.plans);
   const events = useSelector((state: RootState) => state.events.events);
+  const params = useParams();
+  const batchId = params?.batchId;
 
   const [resources, setResources] = useState<File[]>([]);
   const [topicRange, setTopicRange] = useState<{ start?: Date; end?: Date }>(
@@ -156,8 +160,27 @@ export function AddAssignmentDialog({
 
     if (editingAssignment) {
       dispatch(updateAssignment(assignment));
+      dispatch(
+        addActivity({
+          batchId: batchId as string || "",
+          userId: "U101",
+          action: "updated",
+          activityText: `Assignmnet ${values.name} was updated for plan ${findPlanNameById(values.planId,plans)}.`,
+          actionDate: new Date().toISOString(),
+        })
+      );
+
     } else {
       dispatch(addAssignment(assignment));
+      dispatch(
+        addActivity({
+          batchId: batchId as string || "",
+          userId: "U101",
+          action: "created",
+          activityText: `Assignmnet ${values.name} was created for plan ${findPlanNameById(values.planId,plans)}.`,
+          actionDate: new Date().toISOString(),
+        })
+      );
     }
 
     form.reset();

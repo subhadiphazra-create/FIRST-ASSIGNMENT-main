@@ -7,6 +7,9 @@ import eventsReducer from "./eventsSlice";
 import plansReducer from "./plansSlice";
 import assignmentsReducer from "./assignmentSlice";
 import attendancesReducer from "./attendanceSlice";
+import activityReducer from "./activitySlice";
+import feedbackReducer from "./feedbackSlice";
+import mentorFeedbackReducer from "./mentorFeedbacksSlice"; // ✅ fixed import name
 import storage from "redux-persist/lib/storage";
 import { persistReducer, persistStore } from "redux-persist";
 
@@ -18,9 +21,12 @@ const rootReducer = combineReducers({
   plans: plansReducer,
   assignments: assignmentsReducer,
   attendances: attendancesReducer,
+  activity: activityReducer,
+  feedback: feedbackReducer,
+  mentorFeedback: mentorFeedbackReducer, // ✅ matches your slice
 });
 
-// Persist config (only once, at root level)
+// Persist config
 const persistConfig = {
   key: "root",
   storage,
@@ -31,6 +37,9 @@ const persistConfig = {
     "plans",
     "assignments",
     "attendances",
+    "activity",
+    "feedback",
+    "mentorFeedback",
   ],
 };
 
@@ -44,7 +53,6 @@ export const store = configureStore({
     }),
 });
 
-// 🟢 Attach to window for debugging
 if (typeof window !== "undefined") {
   (window as any).store = store;
 }

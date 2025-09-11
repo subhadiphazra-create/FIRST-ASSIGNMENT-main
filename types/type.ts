@@ -182,3 +182,50 @@ export interface Attendance {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Activity {
+  activityId: string;
+  batchId: string;
+  userId: string;
+  action: "created" | "updated" | "deleted";
+  activityText: string;
+  actionDate: string;
+}
+
+export interface FeedBack {
+  feedbackId: string;
+  batchId: string;
+  userId: string;
+  feedBackText: string;
+  feedBackResources: IResource;
+  feedbackDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IResource {
+  resorceId: string;
+  resourceName: string;
+  resourceType: string;
+  resourceSize: string;
+  resourceUrl: string;
+}
+
+export interface FeedbackForms {
+  feedbackId: string;
+  traineeId: string[];
+  trainerId: string[];
+  feedbackName: string;
+  planId: string;
+  batchId: string;
+  topicId: string;
+  feedbackDetails?: FeedbackDetails;
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface FeedbackDetails {
+  highestMarks?: number;
+  feedbackCategory: string;
+  feedbackSubCategory: string;
+}

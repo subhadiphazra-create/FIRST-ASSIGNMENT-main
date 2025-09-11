@@ -26,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { findNameById } from "@/lib/employeeUtils";
-import { IAssignment, IEvent } from "../../interfaces";
+import { IEvent } from "../../interfaces";
 import {
   findPlanNameById,
   findPlanStartDateById,
@@ -104,12 +104,12 @@ export function EventDetailsDialog({ event, children }: IProps) {
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
 
-      <DialogContent className="md:max-w-4xl w-full">
+      <DialogContent className="md:min-w-5xl w-full">
         <DialogHeader>
           <DialogTitle>Plan Name: {planName}</DialogTitle>
 
           <DialogTitle className="font-light text-sm italic">
-            Plan Start Date: {format(planStartDate, "d MMM yyyy")}, 09:30 AM
+            Plan Start Date:  { planStartDate ? format(planStartDate, "d MMM yyyy") : "N/A"}, 09:30 AM
           </DialogTitle>
           <DialogTitle className="font-light text-md">
             Topic Name: {event.title}
@@ -131,7 +131,7 @@ export function EventDetailsDialog({ event, children }: IProps) {
             <div className="flex items-start gap-2">
               <Calendar className="mt-1 size-4 shrink-0" />
               <div>
-                <p className="text-sm font-medium">Event Date</p>
+                <p className="text-sm font-medium">Event Start Date</p>
                 <p className="text-sm text-muted-foreground">
                   {format(startDate, "MMM d, yyyy h:mm a")}
                 </p>
@@ -182,11 +182,22 @@ export function EventDetailsDialog({ event, children }: IProps) {
                           </TableCell>
                           <TableCell>{t.status}</TableCell>
                           <TableCell>
-                            {format(t.startDate, "MMM d, yyyy")}
+                            {t.startDate
+                              ? format(
+                                  parseISO(t.startDate.toString()),
+                                  "MMM d, yyyy"
+                                )
+                              : "N/A"}
                           </TableCell>
                           <TableCell>
-                            {format(t.endDate, "MMM d, yyyy")}
+                            {t.endDate
+                              ? format(
+                                  parseISO(t.endDate.toString()),
+                                  "MMM d, yyyy"
+                                )
+                              : "N/A"}
                           </TableCell>
+
                           <TableCell>{findNameById(t.trainerId)}</TableCell>
                           <TableCell>
                             {t.resources && t.resources.length > 0 ? (

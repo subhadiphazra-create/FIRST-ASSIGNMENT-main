@@ -7,6 +7,7 @@ import {
   Grid2x2,
   CalendarRange,
   SendHorizonal,
+  SquareMenu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TCalendarView } from "../../types";
@@ -19,6 +20,8 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { Batch } from "@/types/type";
 import { PlanSelect } from "./plan-select";
+import { useState } from "react";
+import { DiscussionForum } from "@/components/main/discussion/DiscussionForum";
 
 interface IProps {
   view: TCalendarView;
@@ -32,13 +35,22 @@ export function CalendarHeader({ view, events, onChangeView }: IProps) {
 
   const batch: Batch | undefined = batches.find((b) => b.batchId === batchId);
 
+  // Sidebar state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <>
-      <div className="flex items-center mt-3 w-full">
+      <div className="flex justify-between items-center mt-3 w-full">
         <h2 className="text-md font-semibold flex items-center gap-3 ml-4">
           <SendHorizonal width={16} height={16} /> IKON Training -{" "}
           {batch?.batchTitle ?? "Unknown Batch"}
         </h2>
+        <Button
+          className="bg-transparent border mr-3 text-black dark:text-white hover:bg-slate-100 dark:hover:bg-black"
+          onClick={() => setIsSidebarOpen(true)}
+        >
+          <SquareMenu />
+        </Button>
       </div>
       <hr className="h-2 w-full mt-4" />
 
@@ -108,6 +120,9 @@ export function CalendarHeader({ view, events, onChangeView }: IProps) {
           </div>
         </div>
       </div>
+
+      {/* ✅ Sidebar off-canvas */}
+      <DiscussionForum open={isSidebarOpen} onOpenChange={setIsSidebarOpen} />
     </>
   );
 }

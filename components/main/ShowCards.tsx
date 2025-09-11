@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useTimeAgo } from "@/hooks/useTimeAgo";
+import { useDispatch } from "react-redux";
+import { addActivity } from "@/store/activitySlice";
+import { useParams } from "next/navigation";
 
 type ShowEntityCardProps = {
   id: string;
@@ -37,11 +40,26 @@ export default function ShowCards({
 }: ShowEntityCardProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-
+  const dispatch = useDispatch();
   const timeAgoText = useTimeAgo(createdAt);
+
+  const params = useParams();
+  const batchId = (params?.batchId as string);
 
   const handleDelete = () => {
     onDelete(id);
+
+    // ✅ Log activity in store
+    dispatch(
+      addActivity({
+        batchId: batchId ? batchId : id,
+        userId: "U101", // replace with real user
+        action: "deleted",
+        activityText: `Plan ${title} was deleted.`,
+        actionDate: new Date().toISOString(),
+      })
+    );
+
     setConfirmOpen(false);
   };
 

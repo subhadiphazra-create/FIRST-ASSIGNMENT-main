@@ -10,6 +10,7 @@ import {
   FolderOpen,
   History,
   LayoutList,
+  MessageCirclePlus,
   NotebookPen,
   Pencil,
   Percent,
@@ -71,6 +72,11 @@ export default function BatchCard({ batch }: BatchCardProps) {
       label: "Attandance Details",
       action: () => router.push(`/${batchId}/attandance-details`),
       icon: <SquarePlus size={16} />,
+    },
+    {
+      label: "Feedbacks Details",
+      action: () => router.push(`/${batchId}/feedback-details`),
+      icon: <MessageCirclePlus size={16} />,
     },
     { label: "Open Folder", action: () => {}, icon: <FolderOpen size={16} /> },
   ];

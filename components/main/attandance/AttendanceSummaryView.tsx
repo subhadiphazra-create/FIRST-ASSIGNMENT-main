@@ -1,9 +1,13 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, AlertTriangle, CheckCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { X, AlertTriangle, CheckCheck, Download } from "lucide-react";
 import { Attendance, TrainingPlan } from "@/types/type";
-import { parseISO } from "date-fns";
+import { parseISO, format } from "date-fns";
+import * as XLSX from "xlsx";
+import { findPlanNameById } from "@/lib/findPlanNameById";
+import { findNameById } from "@/lib/employeeUtils";
 
 interface AttendanceSummaryViewProps {
   attendances: Attendance[];
@@ -46,6 +50,61 @@ const AttendanceSummaryView: React.FC<AttendanceSummaryViewProps> = ({
     attendances.map((a) => parseISO(a.attendanceDate).toDateString())
   ).size;
 
+  // 🔹 Excel Export Function
+  const handleDownloadExcel = () => {
+    if (!attendances || attendances.length === 0) return;
+
+    // Collect all unique trainee IDs
+    const allTraineeIds = new Set<string>();
+    attendances.forEach((a) =>
+      Object.keys(a.traineeList).forEach((id) => allTraineeIds.add(id))
+    );
+
+    // Collect all dates in sorted order
+    const allDates = attendances
+      .map((a) => parseISO(a.attendanceDate))
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    const dateHeaders = allDates.map((d) => format(d, "dd-MM-yyyy"));
+
+    // Build sheet data
+    const sheetData: any[] = [];
+
+    // Header row: Index | Name | Dates...
+    sheetData.push(["Id", "Name", ...dateHeaders]);
+
+    // Each trainee row
+    Array.from(allTraineeIds).forEach((traineeId, index) => {
+      const row: any[] = [traineeId, findNameById(traineeId)];
+
+      allDates.forEach((dateObj) => {
+        const dateStr = dateObj.toISOString().split("T")[0]; // YYYY-MM-DD
+        const attendanceForDay = attendances.find(
+          (a) => a.attendanceDate.split("T")[0] === dateStr
+        );
+
+        let status = "";
+        if (attendanceForDay) {
+          status = attendanceForDay.traineeList[traineeId] || "";
+        }
+
+        row.push(status);
+      });
+
+      sheetData.push(row);
+    });
+
+    // Create worksheet & workbook
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+    // File name: planName-attendance.xlsx
+    XLSX.writeFile(
+      wb,
+      `${findPlanNameById(plan.planId, [plan])}-attendance.xlsx`
+    );
+  };
+
   return (
     <div className="mt-4 space-y-4">
       {/* Top 3 Cards */}
@@ -86,7 +145,7 @@ const AttendanceSummaryView: React.FC<AttendanceSummaryViewProps> = ({
         <CardHeader>
           <CardTitle className="text-lg">Overall Summary</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="flex justify-between">
             <p className="text-sm text-gray-500">Overall Attendance Rate</p>
             <p
@@ -107,6 +166,15 @@ const AttendanceSummaryView: React.FC<AttendanceSummaryViewProps> = ({
             <p className="text-sm text-gray-500">Average Daily Attendance</p>
             <p className="text-lg font-semibold">{averageDailyAttendance}</p>
           </div>
+
+          {/* ✅ Download Button */}
+          <Button
+            className="w-full mt-2 flex items-center gap-2"
+            onClick={handleDownloadExcel}
+          >
+            <Download className="w-4 h-4" />
+            Download as Excel
+          </Button>
         </CardContent>
       </Card>
     </div>

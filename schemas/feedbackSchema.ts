@@ -1,22 +1,42 @@
 import { z } from "zod";
 
+// ✅ Feedback discussion schema
+export const feedbackDiscussionSchema = z.object({
+  id: z.string(),
+  index: z.number().optional(),
+  category: z.string().min(1, "Category is required"),
+  subCategory: z.string().min(1, "Sub-category is required"),
+  // make planId and batchId optional for now
+  planId: z.string().optional(),
+  batchId: z.string().optional(),
+});
+
+export type TFeedbackDiscussion = z.infer<typeof feedbackDiscussionSchema>;
+
+// ✅ Feedback schema
 export const feedbackSchema = z.object({
   feedbackId: z.string().uuid(),
   feedbackName: z.string().min(1, "Feedback name is required"),
-  planId: z.string().min(1, "Plan is required"),
-  batchId: z.string().min(1, "Batch is required"),
-  topicId: z.string().min(1, "Topic is required"),
-  traineeId: z.array(z.string()).min(1, "At least one trainee is required"),
-  trainerId: z.array(z.string()).min(1, "At least one trainer is required"),
-  highestMarks: z.number().min(1, "Marks must be greater than 0"), // moved outside feedbackDetails
+  status: z.enum(["Active", "Inactive"]).default("Inactive"),
+
+  // Optional details
   feedbackDetails: z
     .object({
       feedbackCategory: z.string().min(1, "Category is required"),
       feedbackSubCategory: z.string().min(1, "Sub-category is required"),
+      highestMarks: z.number().optional(),
     })
-    .optional(), // now optional
-  updatedAt: z.string(),
+    .optional(),
+
+  // Assigned people
+  traineeId: z.array(z.string()).default([]),
+  trainerId: z.array(z.string()).default([]),
+
+  // Discussions
+  feedbackDiscussions: z.array(feedbackDiscussionSchema).optional(),
+
   createdAt: z.string(),
+  updatedAt: z.string(),
 });
 
 export type TFeedbackForm = z.infer<typeof feedbackSchema>;

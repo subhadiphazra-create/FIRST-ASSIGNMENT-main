@@ -14,6 +14,7 @@ import { useTimeAgo } from "@/hooks/useTimeAgo";
 import { useDispatch } from "react-redux";
 import { addActivity } from "@/store/activitySlice";
 import { useParams } from "next/navigation";
+import { Badge } from "../ui/badge";
 
 type ShowEntityCardProps = {
   id: string;
@@ -26,6 +27,8 @@ type ShowEntityCardProps = {
   extraContent?:
     | ReactNode
     | ((isOpen: boolean, onClose: (open: boolean) => void) => ReactNode);
+  badgeAvilable?: boolean;
+  badgeText?: string;
 };
 
 export default function ShowCards({
@@ -37,6 +40,8 @@ export default function ShowCards({
   onClick,
   confirmTitle = "Delete Item?",
   extraContent,
+  badgeAvilable,
+  badgeText,
 }: ShowEntityCardProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -44,7 +49,7 @@ export default function ShowCards({
   const timeAgoText = useTimeAgo(createdAt);
 
   const params = useParams();
-  const batchId = (params?.batchId as string);
+  const batchId = params?.batchId as string;
 
   const handleDelete = () => {
     onDelete(id);
@@ -81,9 +86,12 @@ export default function ShowCards({
           <div className="flex items-start justify-between">
             {/* Title + Time */}
             <div>
-              <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                {title}
-              </h1>
+              <div className="flex">
+                <h1 className="text-lg font-bold text-gray-900 truncate max-w-[50px] dark:text-gray-100">
+                  {title}
+                </h1>
+                {badgeAvilable && <Badge>{badgeText}</Badge>}
+              </div>
               <p className="text-sm flex items-center gap-2 text-gray-400">
                 <Clock size={12} /> {timeAgoText}
               </p>

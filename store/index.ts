@@ -53,10 +53,6 @@ export const store = configureStore({
     }),
 });
 
-if (typeof window !== "undefined") {
-  (window as any).store = store;
-}
-
 export const persistor = persistStore(store);
 
 export type RootState = ReturnType<typeof store.getState>;

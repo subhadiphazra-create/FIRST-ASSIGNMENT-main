@@ -1,17 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { TFeedbackForm as OriginalTFeedbackForm } from "@/schemas/feedbackSchema";
-
-export interface FeedbackDiscussion {
-  id: string;
-  index: number;
-  category: string;
-  subCategory: string;
-}
-
-// Extend TFeedbackForm to include feedbackDiscussions
-export type TFeedbackForm = OriginalTFeedbackForm & {
-  feedbackDiscussions?: FeedbackDiscussion[];
-};
+import { TFeedbackForm, TFeedbackDiscussion } from "@/schemas/feedbackSchema";
 
 interface FeedbackState {
   feedbacks: TFeedbackForm[];
@@ -25,12 +13,19 @@ const mentorFeedbackSlice = createSlice({
   name: "mentorFeedback",
   initialState,
   reducers: {
-    // ➕ Add new feedback
+    // ➕ Add feedback
     addMentorFeedback: (state, action: PayloadAction<TFeedbackForm>) => {
-      state.feedbacks.push(action.payload);
+      state.feedbacks.push({
+        ...action.payload,
+        traineeId: action.payload.traineeId ?? [],
+        trainerId: action.payload.trainerId ?? [],
+        feedbackDiscussions: action.payload.feedbackDiscussions ?? [],
+        createdAt: action.payload.createdAt ?? new Date().toISOString(),
+        updatedAt: action.payload.updatedAt ?? new Date().toISOString(),
+      });
     },
 
-    // ✏️ Update existing feedback
+    // ✏️ Update feedback
     updateMentorFeedback: (
       state,
       action: PayloadAction<{ feedbackId: string; data: Partial<TFeedbackForm> }>
@@ -41,6 +36,10 @@ const mentorFeedbackSlice = createSlice({
         state.feedbacks[index] = {
           ...state.feedbacks[index],
           ...data,
+          traineeId: data.traineeId ?? state.feedbacks[index].traineeId,
+          trainerId: data.trainerId ?? state.feedbacks[index].trainerId,
+          feedbackDiscussions:
+            data.feedbackDiscussions ?? state.feedbacks[index].feedbackDiscussions,
           updatedAt: new Date().toISOString(),
         };
       }
@@ -48,23 +47,33 @@ const mentorFeedbackSlice = createSlice({
 
     // 🗑️ Delete feedback
     deleteMentorFeedback: (state, action: PayloadAction<string>) => {
-      state.feedbacks = state.feedbacks.filter(
-        (f) => f.feedbackId !== action.payload
-      );
+      state.feedbacks = state.feedbacks.filter((f) => f.feedbackId !== action.payload);
     },
 
-    // ➕ Add discussion to feedback
+    // 👨‍🏫 Assign mentors/trainees
+    assignMentorsToFeedback: (
+      state,
+      action: PayloadAction<{ feedbackId: string; traineeId: string[]; trainerId: string[] }>
+    ) => {
+      const { feedbackId, traineeId, trainerId } = action.payload;
+      const feedback = state.feedbacks.find((f) => f.feedbackId === feedbackId);
+      if (feedback) {
+        feedback.traineeId = traineeId;
+        feedback.trainerId = trainerId;
+        feedback.updatedAt = new Date().toISOString();
+      }
+    },
+
+    // ➕ Add discussion
     addFeedbackDiscussion: (
       state,
-      action: PayloadAction<{ feedbackId: string; discussion: FeedbackDiscussion }>
+      action: PayloadAction<{ feedbackId: string; discussion: TFeedbackDiscussion }>
     ) => {
       const { feedbackId, discussion } = action.payload;
       const feedback = state.feedbacks.find((f) => f.feedbackId === feedbackId);
       if (feedback) {
-        if (!feedback.feedbackDiscussions) {
-          (feedback as any).feedbackDiscussions = [];
-        }
-        (feedback as any).feedbackDiscussions.push(discussion);
+        feedback.feedbackDiscussions = feedback.feedbackDiscussions || [];
+        feedback.feedbackDiscussions.push(discussion);
         feedback.updatedAt = new Date().toISOString();
       }
     },
@@ -75,16 +84,18 @@ const mentorFeedbackSlice = createSlice({
       action: PayloadAction<{
         feedbackId: string;
         discussionId: string;
-        data: Partial<FeedbackDiscussion>;
+        data: Partial<TFeedbackDiscussion>;
       }>
     ) => {
       const { feedbackId, discussionId, data } = action.payload;
       const feedback = state.feedbacks.find((f) => f.feedbackId === feedbackId);
-      if (feedback && (feedback as any).feedbackDiscussions) {
-        const discussions = (feedback as any).feedbackDiscussions as FeedbackDiscussion[];
-        const idx = discussions.findIndex((d) => d.id === discussionId);
+      if (feedback && feedback.feedbackDiscussions) {
+        const idx = feedback.feedbackDiscussions.findIndex((d) => d.id === discussionId);
         if (idx !== -1) {
-          discussions[idx] = { ...discussions[idx], ...data };
+          feedback.feedbackDiscussions[idx] = {
+            ...feedback.feedbackDiscussions[idx],
+            ...data,
+          };
           feedback.updatedAt = new Date().toISOString();
         }
       }
@@ -97,11 +108,10 @@ const mentorFeedbackSlice = createSlice({
     ) => {
       const { feedbackId, discussionId } = action.payload;
       const feedback = state.feedbacks.find((f) => f.feedbackId === feedbackId);
-      if (feedback && (feedback as any).feedbackDiscussions) {
-        (feedback as any).feedbackDiscussions =
-          (feedback as any).feedbackDiscussions.filter(
-            (d: FeedbackDiscussion) => d.id !== discussionId
-          );
+      if (feedback && feedback.feedbackDiscussions) {
+        feedback.feedbackDiscussions = feedback.feedbackDiscussions.filter(
+          (d) => d.id !== discussionId
+        );
         feedback.updatedAt = new Date().toISOString();
       }
     },
@@ -112,6 +122,7 @@ export const {
   addMentorFeedback,
   updateMentorFeedback,
   deleteMentorFeedback,
+  assignMentorsToFeedback,
   addFeedbackDiscussion,
   updateFeedbackDiscussion,
   deleteFeedbackDiscussion,

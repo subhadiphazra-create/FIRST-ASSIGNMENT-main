@@ -37,7 +37,7 @@ export default function RootLayout({
             {/* Main content area */}
             <div className="flex flex-col flex-1">
               <AppHeader />
-              <main className="flex-1 p-4 pr-20 flex flex-col w-full gap-4 overflow-x-auto">
+              <main className="flex-1 p-4 flex flex-col w-full gap-4 overflow-x-auto">
                 {children}
               </main>
             </div>

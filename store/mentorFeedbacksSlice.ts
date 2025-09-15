@@ -28,10 +28,15 @@ const mentorFeedbackSlice = createSlice({
     // ✏️ Update feedback
     updateMentorFeedback: (
       state,
-      action: PayloadAction<{ feedbackId: string; data: Partial<TFeedbackForm> }>
+      action: PayloadAction<{
+        feedbackId: string;
+        data: Partial<TFeedbackForm>;
+      }>
     ) => {
       const { feedbackId, data } = action.payload;
-      const index = state.feedbacks.findIndex((f) => f.feedbackId === feedbackId);
+      const index = state.feedbacks.findIndex(
+        (f) => f.feedbackId === feedbackId
+      );
       if (index !== -1) {
         state.feedbacks[index] = {
           ...state.feedbacks[index],
@@ -39,7 +44,8 @@ const mentorFeedbackSlice = createSlice({
           traineeId: data.traineeId ?? state.feedbacks[index].traineeId,
           trainerId: data.trainerId ?? state.feedbacks[index].trainerId,
           feedbackDiscussions:
-            data.feedbackDiscussions ?? state.feedbacks[index].feedbackDiscussions,
+            data.feedbackDiscussions ??
+            state.feedbacks[index].feedbackDiscussions,
           updatedAt: new Date().toISOString(),
         };
       }
@@ -47,17 +53,28 @@ const mentorFeedbackSlice = createSlice({
 
     // 🗑️ Delete feedback
     deleteMentorFeedback: (state, action: PayloadAction<string>) => {
-      state.feedbacks = state.feedbacks.filter((f) => f.feedbackId !== action.payload);
+      state.feedbacks = state.feedbacks.filter(
+        (f) => f.feedbackId !== action.payload
+      );
     },
 
     // 👨‍🏫 Assign mentors/trainees
     assignMentorsToFeedback: (
       state,
-      action: PayloadAction<{ feedbackId: string; traineeId: string[]; trainerId: string[] }>
+      action: PayloadAction<{
+        feedbackId: string;
+        traineeId: string[];
+        trainerId: string[];
+        planId: string;
+        batchId: string;
+      }>
     ) => {
-      const { feedbackId, traineeId, trainerId } = action.payload;
+      const { feedbackId, traineeId, trainerId, planId, batchId } =
+        action.payload;
       const feedback = state.feedbacks.find((f) => f.feedbackId === feedbackId);
       if (feedback) {
+        feedback.planId = planId;
+        feedback.batchId = batchId;
         feedback.traineeId = traineeId;
         feedback.trainerId = trainerId;
         feedback.updatedAt = new Date().toISOString();
@@ -67,7 +84,10 @@ const mentorFeedbackSlice = createSlice({
     // ➕ Add discussion
     addFeedbackDiscussion: (
       state,
-      action: PayloadAction<{ feedbackId: string; discussion: TFeedbackDiscussion }>
+      action: PayloadAction<{
+        feedbackId: string;
+        discussion: TFeedbackDiscussion;
+      }>
     ) => {
       const { feedbackId, discussion } = action.payload;
       const feedback = state.feedbacks.find((f) => f.feedbackId === feedbackId);
@@ -90,7 +110,9 @@ const mentorFeedbackSlice = createSlice({
       const { feedbackId, discussionId, data } = action.payload;
       const feedback = state.feedbacks.find((f) => f.feedbackId === feedbackId);
       if (feedback && feedback.feedbackDiscussions) {
-        const idx = feedback.feedbackDiscussions.findIndex((d) => d.id === discussionId);
+        const idx = feedback.feedbackDiscussions.findIndex(
+          (d) => d.id === discussionId
+        );
         if (idx !== -1) {
           feedback.feedbackDiscussions[idx] = {
             ...feedback.feedbackDiscussions[idx],
@@ -115,10 +137,54 @@ const mentorFeedbackSlice = createSlice({
         feedback.updatedAt = new Date().toISOString();
       }
     },
+    updateTraineeDiscussionScore: (
+      state,
+      action: PayloadAction<{
+        feedbackId: string;
+        discussionId: string;
+        traineeId: string;
+        obtainedMarks?: number | null;
+        remarks?: string;
+      }>
+    ) => {
+      const { feedbackId, discussionId, traineeId, obtainedMarks, remarks } =
+        action.payload;
+      const feedback = state.feedbacks.find((f) => f.feedbackId === feedbackId);
+      if (feedback && feedback.feedbackDiscussions) {
+        const discussion = feedback.feedbackDiscussions.find(
+          (d) => d.id === discussionId
+        );
+        // if (discussion) {
+        //   discussion.traineeDiscussions = discussion.traineeDiscussions || [];
+        //   const idx = discussion.traineeDiscussions.findIndex(
+        //     (t) => t.traineeId === traineeId
+        //   );
+
+        //   if (idx !== -1) {
+        //     // update existing
+        //     discussion.traineeDiscussions[idx] = {
+        //       ...discussion.traineeDiscussions[idx],
+        //       obtainedMarks,
+        //       remarks,
+        //     };
+        //   } else {
+        //     // add new
+        //     discussion.traineeDiscussions.push({
+        //       traineeId,
+        //       obtainedMarks,
+        //       remarks,
+        //     });
+        //   }
+
+        //   feedback.updatedAt = new Date().toISOString();
+        // }
+      }
+    },
   },
 });
 
 export const {
+  updateTraineeDiscussionScore,
   addMentorFeedback,
   updateMentorFeedback,
   deleteMentorFeedback,

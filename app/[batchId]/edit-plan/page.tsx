@@ -59,6 +59,7 @@ const EditPlanPage = (props: Props) => {
         ) : (
           filteredPlans?.map((plan, index) => (
             <ShowCards
+              cardFor="Plan"
               key={index}
               id={plan.planId}
               title={plan.planTitle}

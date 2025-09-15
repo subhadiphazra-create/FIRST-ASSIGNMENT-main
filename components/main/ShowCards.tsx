@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, ReactNode } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Clock, Trash2 } from "lucide-react";
 import {
   Dialog,
@@ -29,6 +29,7 @@ type ShowEntityCardProps = {
     | ((isOpen: boolean, onClose: (open: boolean) => void) => ReactNode);
   badgeAvilable?: boolean;
   badgeText?: string;
+  cardFor:string;
 };
 
 export default function ShowCards({
@@ -41,6 +42,7 @@ export default function ShowCards({
   confirmTitle = "Delete Item?",
   extraContent,
   badgeAvilable,
+  cardFor,
   badgeText,
 }: ShowEntityCardProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -58,9 +60,9 @@ export default function ShowCards({
     dispatch(
       addActivity({
         batchId: batchId ? batchId : id,
-        userId: "U101", // replace with real user
+        userId: "U101",
         action: "deleted",
-        activityText: `Plan ${title} was deleted.`,
+        activityText: `${cardFor?.toLowerCase() === "plan" ? 'Plan' : 'Feedback'} ${title} was deleted for batch ${batchId}.`,
         actionDate: new Date().toISOString(),
       })
     );
@@ -81,16 +83,18 @@ export default function ShowCards({
           }
         }}
       >
-        <CardContent className="p-4">
+          <CardHeader className="w-full flex justify-end">
+            {badgeAvilable && <Badge>{badgeText}</Badge>}
+          </CardHeader>
+        <CardContent className="px-4">
           {/* Header Row */}
           <div className="flex items-start justify-between">
             {/* Title + Time */}
             <div>
               <div className="flex">
-                <h1 className="text-lg font-bold text-gray-900 truncate max-w-[50px] dark:text-gray-100">
+                <h1 className="text-lg font-bold text-gray-900 truncate max-w-[90%] dark:text-gray-100">
                   {title}
                 </h1>
-                {badgeAvilable && <Badge>{badgeText}</Badge>}
               </div>
               <p className="text-sm flex items-center gap-2 text-gray-400">
                 <Clock size={12} /> {timeAgoText}

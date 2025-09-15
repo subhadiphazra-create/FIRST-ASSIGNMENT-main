@@ -43,6 +43,7 @@ const Home = () => {
         ) : (
           filteredBatches?.map((batch: Batch, index) => (
             <ShowCards
+              cardFor="Batch"
               key={index}
               id={batch.batchId}
               description={batch.courseDescription}

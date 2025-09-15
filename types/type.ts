@@ -211,21 +211,46 @@ export interface IResource {
   resourceUrl: string;
 }
 
-export interface FeedbackForms {
-  feedbackId: string;
-  traineeId: string[];
-  trainerId: string[];
-  feedbackName: string;
-  planId: string;
-  batchId: string;
-  topicId: string;
-  feedbackDetails?: FeedbackDetails;
-  updatedAt: string;
-  createdAt: string;
+export interface FeedbackDiscussion {
+  id: string;
+  index?: number;
+  category: string;
+  subCategory: string;
+  planId?: string;
+  batchId?: string;
+
+  // scores per trainee
+  traineeDiscussions?: {
+    traineeId: string;
+    obtainedMarks?: number | null;
+    remarks?: string;
+  }[];
+  highestMarks?: number; // keep top-level highest
 }
 
 export interface FeedbackDetails {
-  highestMarks?: number;
   feedbackCategory: string;
   feedbackSubCategory: string;
+  highestMarks?: number;
+  obtainedMarks?: number;
+  remarks?: string;
+}
+
+export interface FeedbackForm {
+  feedbackId: string;
+  feedbackName: string;
+  status: "Active" | "Inactive";
+
+  traineeId: string[];
+  trainerId: string[];
+
+  planId?: string;
+  batchId?: string;
+  topicId?: string;
+
+  feedbackDetails?: FeedbackDetails;
+  feedbackDiscussions?: FeedbackDiscussion[];
+
+  createdAt: string;
+  updatedAt: string;
 }

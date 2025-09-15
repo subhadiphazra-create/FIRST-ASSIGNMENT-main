@@ -200,7 +200,7 @@ export default function AssignMentorsDialog({
                           label: `${t.basicData.firstName} ${t.basicData.lastName}`,
                           role: t.basicData.role,
                         }))}
-                      value={field.value}
+                      value={field.value || []}
                       onChange={(val) =>
                         field.onChange((val as string[]) ?? [])
                       }

@@ -35,7 +35,6 @@ type Props = {
 };
 
 export default function AddFeedbackDialog({
-  plans,
   feedback,
   mode = "create",
   isOpen,

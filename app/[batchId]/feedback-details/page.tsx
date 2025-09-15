@@ -74,6 +74,7 @@ const FeedbackPage = () => {
         ) : (
           filteredFeedbacks?.map((fb) => (
             <ShowCards
+              cardFor="Feedback"
               key={fb.feedbackId}
               id={fb.feedbackId}
               title={fb.feedbackName}

@@ -32,10 +32,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import AddPlanDialog from "./AddPlanDialog";
 import { findNameById } from "@/lib/employeeUtils";
 import { useRouter } from "next/navigation";
 import ViewAssignmentDialog from "@/components/calendar/components/dialogs/view-assignment-dialog";
+import EditTrainerFeedbackDialog from "../eidtTrainerFeedback/EditTrainerFeedbackDialog";
+import TrainerFeedbackSummary from "../eidtTrainerFeedback/TrainerFeedbackSummary";
 
 interface BatchCardProps {
   batch: Batch;
@@ -49,6 +50,7 @@ export default function BatchCard({ batch }: BatchCardProps) {
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [showAddAssgDialog, setShowAddAssgDialog] = useState(false);
   const [showAttandanceDialog, setShowAttandanceDialog] = useState(false);
+  const [traineeId, setTraineeId] = useState("");
 
   const router = useRouter();
   const checkIsComplete = (endDate: string) => {
@@ -140,7 +142,10 @@ export default function BatchCard({ batch }: BatchCardProps) {
                       <History />
                     </Button>
                     <Button
-                      onClick={() => setShowEditDialog(true)}
+                      onClick={() => {
+                        setShowEditDialog(true);
+                        setTraineeId(trainee);
+                      }}
                       className="bg-transparent border text-black dark:text-white hover:bg-slate-100 dark:hover:bg-black"
                     >
                       <Pencil />
@@ -201,6 +206,14 @@ export default function BatchCard({ batch }: BatchCardProps) {
         <ViewAssignmentDialog
           isOpen={showAddAssgDialog}
           onClose={() => setShowAddAssgDialog(false)}
+        />
+      )}
+      {showEditDialog && (
+        <TrainerFeedbackSummary
+          isOpen={showEditDialog}
+          traineeId={traineeId}
+          onClose={() => setShowEditDialog(false)}
+          batch={batch} // 👈 pass batch
         />
       )}
     </>

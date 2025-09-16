@@ -13,7 +13,6 @@ const mentorFeedbackSlice = createSlice({
   name: "mentorFeedback",
   initialState,
   reducers: {
-    // ➕ Add feedback
     addMentorFeedback: (state, action: PayloadAction<TFeedbackForm>) => {
       state.feedbacks.push({
         ...action.payload,
@@ -25,7 +24,6 @@ const mentorFeedbackSlice = createSlice({
       });
     },
 
-    // ✏️ Update feedback
     updateMentorFeedback: (
       state,
       action: PayloadAction<{
@@ -51,14 +49,12 @@ const mentorFeedbackSlice = createSlice({
       }
     },
 
-    // 🗑️ Delete feedback
     deleteMentorFeedback: (state, action: PayloadAction<string>) => {
       state.feedbacks = state.feedbacks.filter(
         (f) => f.feedbackId !== action.payload
       );
     },
 
-    // 👨‍🏫 Assign mentors/trainees
     assignMentorsToFeedback: (
       state,
       action: PayloadAction<{
@@ -81,7 +77,6 @@ const mentorFeedbackSlice = createSlice({
       }
     },
 
-    // ➕ Add discussion
     addFeedbackDiscussion: (
       state,
       action: PayloadAction<{
@@ -98,7 +93,6 @@ const mentorFeedbackSlice = createSlice({
       }
     },
 
-    // ✏️ Update discussion
     updateFeedbackDiscussion: (
       state,
       action: PayloadAction<{
@@ -123,7 +117,6 @@ const mentorFeedbackSlice = createSlice({
       }
     },
 
-    // 🗑️ Delete discussion
     deleteFeedbackDiscussion: (
       state,
       action: PayloadAction<{ feedbackId: string; discussionId: string }>
@@ -137,6 +130,8 @@ const mentorFeedbackSlice = createSlice({
         feedback.updatedAt = new Date().toISOString();
       }
     },
+
+    // ✅ Update trainee marks + remarks + highestMarks
     updateTraineeDiscussionScore: (
       state,
       action: PayloadAction<{
@@ -145,39 +140,50 @@ const mentorFeedbackSlice = createSlice({
         traineeId: string;
         obtainedMarks?: number | null;
         remarks?: string;
+        highestMarks?: number | null;
       }>
     ) => {
-      const { feedbackId, discussionId, traineeId, obtainedMarks, remarks } =
-        action.payload;
+      const {
+        feedbackId,
+        discussionId,
+        traineeId,
+        obtainedMarks,
+        remarks,
+        highestMarks,
+      } = action.payload;
+
       const feedback = state.feedbacks.find((f) => f.feedbackId === feedbackId);
       if (feedback && feedback.feedbackDiscussions) {
         const discussion = feedback.feedbackDiscussions.find(
           (d) => d.id === discussionId
         );
-        // if (discussion) {
-        //   discussion.traineeDiscussions = discussion.traineeDiscussions || [];
-        //   const idx = discussion.traineeDiscussions.findIndex(
-        //     (t) => t.traineeId === traineeId
-        //   );
+        if (discussion) {
+          // ✅ Update highest marks if provided
+          if (highestMarks !== undefined) {
+            discussion.highestMarks = highestMarks;
+          }
 
-        //   if (idx !== -1) {
-        //     // update existing
-        //     discussion.traineeDiscussions[idx] = {
-        //       ...discussion.traineeDiscussions[idx],
-        //       obtainedMarks,
-        //       remarks,
-        //     };
-        //   } else {
-        //     // add new
-        //     discussion.traineeDiscussions.push({
-        //       traineeId,
-        //       obtainedMarks,
-        //       remarks,
-        //     });
-        //   }
+          discussion.traineeDiscussions = discussion.traineeDiscussions || [];
+          const idx = discussion.traineeDiscussions.findIndex(
+            (t) => t.traineeId === traineeId
+          );
 
-        //   feedback.updatedAt = new Date().toISOString();
-        // }
+          if (idx !== -1) {
+            discussion.traineeDiscussions[idx] = {
+              ...discussion.traineeDiscussions[idx],
+              obtainedMarks,
+              remarks,
+            };
+          } else {
+            discussion.traineeDiscussions.push({
+              traineeId,
+              obtainedMarks,
+              remarks,
+            });
+          }
+
+          feedback.updatedAt = new Date().toISOString();
+        }
       }
     },
   },

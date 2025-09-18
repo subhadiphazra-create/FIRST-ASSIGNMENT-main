@@ -3,8 +3,15 @@
 import AddFeedbackDialog from "@/components/main/feedbacks/AddFedbackDialog";
 import AssignMentorsDialog from "@/components/main/feedbacks/AssignMentors";
 import ShowCards from "@/components/main/ShowCards";
+import FeedbackSummary from "@/components/main/feedbacks/FeedbackSummary"; // ✅ Import summary component
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"; // ✅ shadcn Tabs
 import { mockEmployees } from "@/constants";
 import { TFeedbackForm } from "@/schemas/feedbackSchema";
 import { RootState } from "@/store";
@@ -63,39 +70,50 @@ const FeedbackPage = () => {
         </Button>
       </div>
 
-      <div className="my-3">
-        <h1 className="text-xl font-semibold">All Feedbacks</h1>
-      </div>
+      {/* ✅ Tabs for All Feedbacks & Summary */}
+      <Tabs defaultValue="all" className="w-full mt-4">
+        <TabsList>
+          <TabsTrigger value="all" className="text-md p-3">All Feedbacks</TabsTrigger>
+          <TabsTrigger value="summary" className="text-md p-3">Summary</TabsTrigger>
+        </TabsList>
 
-      {/* Feedback Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-        {filteredFeedbacks?.length === 0 ? (
-          <h1>No Feedback Found</h1>
-        ) : (
-          filteredFeedbacks?.map((fb) => (
-            <ShowCards
-              cardFor="Feedback"
-              key={fb.feedbackId}
-              id={fb.feedbackId}
-              title={fb.feedbackName}
-              createdAt={fb.createdAt}
-              onDelete={(id) => dispatch(deleteMentorFeedback(id))}
-              confirmTitle="Delete Feedback?"
-              badgeAvilable={true} // ✅ Enable badge
-              badgeText={fb.status} // ✅ Pass status from schema
-              extraContent={(isOpen, onClose) => (
-                <AddFeedbackDialog
-                  isOpen={isOpen}
-                  onClose={() => onClose(false)}
-                  plans={plans}
-                  feedback={fb}
-                  mode="edit"
+        {/* All Feedbacks */}
+        <TabsContent value="all">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+            {filteredFeedbacks?.length === 0 ? (
+              <h1>No Feedback Found</h1>
+            ) : (
+              filteredFeedbacks?.map((fb) => (
+                <ShowCards
+                  cardFor="Feedback"
+                  key={fb.feedbackId}
+                  id={fb.feedbackId}
+                  title={fb.feedbackName}
+                  createdAt={fb.createdAt}
+                  onDelete={(id) => dispatch(deleteMentorFeedback(id))}
+                  confirmTitle="Delete Feedback?"
+                  badgeAvilable={true} // ✅ Enable badge
+                  badgeText={fb.status} // ✅ Pass status from schema
+                  extraContent={(isOpen, onClose) => (
+                    <AddFeedbackDialog
+                      isOpen={isOpen}
+                      onClose={() => onClose(false)}
+                      plans={plans}
+                      feedback={fb}
+                      mode="edit"
+                    />
+                  )}
                 />
-              )}
-            />
-          ))
-        )}
-      </div>
+              ))
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Feedback Summary */}
+        <TabsContent value="summary">
+          <FeedbackSummary />
+        </TabsContent>
+      </Tabs>
 
       {/* Create Feedback Dialog */}
       {showAddFeedbackDialog && (

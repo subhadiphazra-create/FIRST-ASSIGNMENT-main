@@ -2,7 +2,7 @@
 
 import { useDispatch, useSelector } from "react-redux";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
@@ -17,21 +17,35 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
 import { SmartSelect } from "@/components/ui/multi-select";
+import { Switch } from "@/components/ui/switch";
 import { assignMentorsToFeedback } from "@/store/mentorFeedbacksSlice";
 import { RootState } from "@/store";
+import { useParams } from "next/navigation";
 
-// ✅ Schema updated with planId + batchId
+// ✅ Schema
+const rowSchema = z.object({
+  traineeId: z.string().min(1, "Select trainee"),
+  trainerIds: z.array(z.string()).min(0),
+  planIds: z.array(z.string()).min(1, "Select at least one plan"),
+  feedbackId: z.string().min(1, "Select a feedback template"),
+  isSelfMentor: z.boolean().default(false),
+});
+
 const assignSchema = z.object({
-  feedbackId: z.string().min(1, "Select a feedback"),
-  planId: z.string().min(1, "Select a plan"),
-  batchId: z.string().min(1, "Batch is required"),
-  traineeId: z.array(z.string()).min(1, "Select at least one trainee"),
-  trainerId: z.array(z.string()).optional(),
+  rows: z.array(rowSchema).min(1, "At least one row is required"),
 });
 
 export type TAssignForm = z.infer<typeof assignSchema>;
@@ -52,35 +66,63 @@ export default function AssignMentorsDialog({
     (state: RootState) => state.mentorFeedback.feedbacks
   );
   const plans = useSelector((state: RootState) => state.plans.plans);
+  const batches = useSelector((state: RootState) => state.training.batches);
+
+  const params = useParams();
+  const currentBatch = params?.batchId as string;
+  console.log(currentBatch);
+
+  // ✅ Find the current batch
+  const activeBatch = batches.find((b) => b.batchId === currentBatch);
+  console.log(activeBatch);
+
+  // ✅ Take mentors from batchMentor
+  const batchMentors = activeBatch?.batchMentor ?? [];
+
+  console.log(batchMentors);
 
   const form = useForm<TAssignForm>({
     resolver: zodResolver(assignSchema),
     defaultValues: {
-      feedbackId: "",
-      planId: "",
-      batchId: "",
-      traineeId: [],
-      trainerId: [],
+      rows: employees
+        .filter((e) => e.basicData.role?.toLowerCase() === "trainee")
+        .map((t) => ({
+          traineeId: t.userId,
+          trainerIds: [...batchMentors], // ✅ Pre-populated mentors
+          planIds: [],
+          feedbackId: "",
+          isSelfMentor: false,
+        })),
     },
   });
 
+  const { fields } = useFieldArray({
+    control: form.control,
+    name: "rows",
+  });
+
   const onSubmit = (data: TAssignForm) => {
-    dispatch(
-      assignMentorsToFeedback({
-        feedbackId: data.feedbackId,
-        planId: data.planId,
-        batchId: data.batchId,
-        traineeId: data.traineeId,
-        trainerId: data.trainerId ?? [],
-      })
-    );
+    data.rows.forEach((row) => {
+      const finalTrainerIds = row.isSelfMentor
+        ? [...new Set([...row.trainerIds, row.traineeId])]
+        : row.trainerIds;
+
+      dispatch(
+        assignMentorsToFeedback({
+          feedbackId: row.feedbackId,
+          planIds: row.planIds,
+          traineeId: [row.traineeId],
+          trainerId: finalTrainerIds,
+        })
+      );
+    });
     onClose();
     form.reset();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-full min-w-3xl rounded-2xl">
+      <DialogContent className="w-full min-w-[90%] rounded-2xl">
         <DialogHeader>
           <DialogTitle>Assign Mentors</DialogTitle>
         </DialogHeader>
@@ -90,130 +132,149 @@ export default function AssignMentorsDialog({
             onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-6 py-2"
           >
-            {/* Feedback */}
-            <FormField
-              control={form.control}
-              name="feedbackId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Feedback</FormLabel>
-                  <FormControl>
-                    <SmartSelect
-                      options={feedbacks.map((fb) => ({
-                        value: fb.feedbackId,
-                        label: fb.feedbackName,
-                      }))}
-                      value={field.value}
-                      onChange={(val) => field.onChange(val as string)}
-                      placeholder="Select feedback"
-                      showSearchbar
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[15%]">Trainee</TableHead>
+                  <TableHead className="w-[30%]">Mentors</TableHead>
+                  <TableHead className="w-[30%]">Plans</TableHead>
+                  <TableHead className="w-[20%]">Feedback Template</TableHead>
+                  <TableHead className="w-[5%]">Self Mentor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {fields.map((field, index) => {
+                  const trainee = employees.find(
+                    (e) => e.userId === field.traineeId
+                  );
+                  return (
+                    <TableRow key={field.id}>
+                      {/* Trainee Column */}
+                      <TableCell className="truncate">
+                        {trainee
+                          ? `${trainee.basicData.firstName} ${trainee.basicData.lastName}`
+                          : "Unknown"}
+                      </TableCell>
 
-            {/* Plan */}
-            <FormField
-              control={form.control}
-              name="planId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Plan</FormLabel>
-                  <FormControl>
-                    <SmartSelect
-                      isMultiSelect={false}
-                      options={plans.map((p) => ({
-                        value: p.planId,
-                        label: p.planTitle,
-                      }))}
-                      value={field.value}
-                      onChange={(val) => {
-                        const newVal = (val as string) ?? "";
-                        field.onChange(newVal);
+                      {/* Mentors Column */}
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`rows.${index}.trainerIds`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <SmartSelect
+                                  isMultiSelect
+                                  className="w-full"
+                                  options={employees
+                                    .filter(
+                                      (e) =>
+                                        e.basicData.role?.toLowerCase() !==
+                                        "trainee"
+                                    )
+                                    .map((t) => ({
+                                      value: t.userId,
+                                      label: `${t.basicData.firstName} ${t.basicData.lastName}`,
+                                      role: t.basicData.role,
+                                    }))}
+                                  value={field.value}
+                                  onChange={(val) =>
+                                    field.onChange((val as string[]) ?? [])
+                                  }
+                                  placeholder="Select mentors"
+                                  showFilter
+                                  showSearchbar
+                                  filterKey="role"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TableCell>
 
-                        // auto-set batchId
-                        const batchId =
-                          plans.find((p) => p.planId === newVal)?.batchId || "";
-                        form.setValue("batchId", batchId, {
-                          shouldValidate: true,
-                        });
-                      }}
-                      placeholder="Select plan"
-                      showFilter
-                      showSearchbar
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      {/* Plans Column */}
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`rows.${index}.planIds`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <SmartSelect
+                                  isMultiSelect
+                                  className="w-full"
+                                  options={plans.map((p) => ({
+                                    value: p.planId,
+                                    label: p.planTitle,
+                                  }))}
+                                  value={field.value}
+                                  onChange={(val) =>
+                                    field.onChange((val as string[]) ?? [])
+                                  }
+                                  placeholder="Select plans"
+                                  showSearchbar
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TableCell>
 
-            {/* Trainees */}
-            <FormField
-              control={form.control}
-              name="traineeId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Trainees</FormLabel>
-                  <FormControl>
-                    <SmartSelect
-                      isMultiSelect
-                      options={employees
-                        .filter(
-                          (e) => e.basicData.role?.toLowerCase() === "trainee"
-                        )
-                        .map((t) => ({
-                          value: t.userId,
-                          label: `${t.basicData.firstName} ${t.basicData.lastName}`,
-                        }))}
-                      value={field.value}
-                      onChange={(val) =>
-                        field.onChange((val as string[]) ?? [])
-                      }
-                      placeholder="Select trainees"
-                      showSearchbar
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      {/* Feedback Template Column */}
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`rows.${index}.feedbackId`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <SmartSelect
+                                  className="w-full"
+                                  options={feedbacks.map((fb) => ({
+                                    value: fb.feedbackId,
+                                    label: fb.feedbackName,
+                                  }))}
+                                  value={field.value}
+                                  onChange={(val) =>
+                                    field.onChange(val as string)
+                                  }
+                                  placeholder="Select feedback"
+                                  showSearchbar
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TableCell>
 
-            {/* Trainers */}
-            <FormField
-              control={form.control}
-              name="trainerId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mentors</FormLabel>
-                  <FormControl>
-                    <SmartSelect
-                      isMultiSelect
-                      options={employees
-                        .filter(
-                          (e) => e.basicData.role?.toLowerCase() !== "trainee"
-                        )
-                        .map((t) => ({
-                          value: t.userId,
-                          label: `${t.basicData.firstName} ${t.basicData.lastName}`,
-                          role: t.basicData.role,
-                        }))}
-                      value={field.value || []}
-                      onChange={(val) =>
-                        field.onChange((val as string[]) ?? [])
-                      }
-                      placeholder="Select mentors"
-                      showFilter
-                      showSearchbar
-                      filterKey="role"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      {/* Self Mentor Switch */}
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`rows.${index}.isSelfMentor`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={(checked) =>
+                                    field.onChange(checked)
+                                  }
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
 
             {/* Actions */}
             <div className="flex justify-end gap-3">

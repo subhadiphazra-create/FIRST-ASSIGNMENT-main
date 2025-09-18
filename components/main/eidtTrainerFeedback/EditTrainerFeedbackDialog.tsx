@@ -23,14 +23,37 @@ import { RootState } from "@/store";
 import { updateTraineeDiscussionScore } from "@/store/mentorFeedbacksSlice";
 
 // ✅ Schema for editing
-const editDiscussionSchema = z.object({
-  id: z.string(),
-  subCategory: z.string().optional(),
-  category: z.string().optional(),
-  highestMarks: z.number().nullable().optional(),
-  obtainedMarks: z.number().nullable().optional(),
-  remarks: z.string().optional(),
-});
+// ✅ Schema for editing with validations
+const editDiscussionSchema = z
+  .object({
+    id: z.string(),
+    subCategory: z.string().optional(),
+    category: z.string().optional(),
+
+    highestMarks: z
+      .number({ invalid_type_error: "Highest marks must be a number" })
+      .min(1, "Highest marks must be at least 1")
+      .nullable()
+      .optional(),
+
+    obtainedMarks: z
+      .number({ invalid_type_error: "Obtained marks must be a number" })
+      .min(0, "Obtained marks cannot be less than 0")
+      .nullable()
+      .optional(),
+
+    remarks: z.string().optional(),
+  })
+  .refine(
+    (data) =>
+      data.highestMarks == null || data.obtainedMarks == null
+        ? true
+        : data.obtainedMarks <= data.highestMarks,
+    {
+      message: "Obtained marks cannot be greater than highest marks",
+      path: ["obtainedMarks"], // highlight the obtainedMarks field
+    }
+  );
 
 const editFeedbackFormSchema = z.object({
   feedbackId: z.string(),
@@ -57,6 +80,8 @@ export default function EditFeedbackDialog({
   const feedback = useSelector((state: RootState) =>
     state.mentorFeedback.feedbacks.find((f) => f.feedbackId === feedbackId)
   );
+
+  const currentUser = useSelector((state:RootState) => state.users.selectedUserId );
 
   const form = useForm<TEditFeedbackFormValues>({
     resolver: zodResolver(editFeedbackFormSchema),
@@ -94,12 +119,13 @@ export default function EditFeedbackDialog({
         id: d.id,
         category: d.category,
         subCategory: d.subCategory,
-        highestMarks: d.highestMarks ?? null,
+        highestMarks: d.highestMarks ?? 5,
         obtainedMarks:
           traineeDiscussion?.obtainedMarks !== undefined
             ? traineeDiscussion?.obtainedMarks
             : null,
         remarks: traineeDiscussion?.remarks ?? "",
+        updatedBy:currentUser,
       };
     });
 
@@ -159,7 +185,8 @@ export default function EditFeedbackDialog({
                   <AccordionTrigger>{category}</AccordionTrigger>
                   <AccordionContent>
                     {groupFields.map((field) => {
-                      const pathBase = `feedbackDiscussions.${field.index}` as const;
+                      const pathBase =
+                        `feedbackDiscussions.${field.index}` as const;
 
                       return (
                         <div
@@ -171,22 +198,48 @@ export default function EditFeedbackDialog({
                           </h4>
                           <div className="grid grid-cols-3 gap-3">
                             {/* Highest Marks */}
-                            <Input
-                              type="number"
-                              placeholder="Highest Marks"
-                              {...register(`${pathBase}.highestMarks`, {
-                                valueAsNumber: true,
-                              })}
-                            />
+                            <div>
+                              <Input
+                                type="number"
+                                placeholder="Highest Marks"
+                                {...register(`${pathBase}.highestMarks`, {
+                                  valueAsNumber: true,
+                                })}
+                              />
+                              {formState.errors.feedbackDiscussions?.[
+                                field.index
+                              ]?.highestMarks && (
+                                <p className="text-red-500 text-sm">
+                                  {
+                                    formState.errors.feedbackDiscussions[
+                                      field.index
+                                    ]?.highestMarks?.message
+                                  }
+                                </p>
+                              )}
+                            </div>
 
                             {/* Obtained Marks */}
-                            <Input
-                              type="number"
-                              placeholder="Obtained Marks"
-                              {...register(`${pathBase}.obtainedMarks`, {
-                                valueAsNumber: true,
-                              })}
-                            />
+                            <div>
+                              <Input
+                                type="number"
+                                placeholder="Obtained Marks"
+                                {...register(`${pathBase}.obtainedMarks`, {
+                                  valueAsNumber: true,
+                                })}
+                              />
+                              {formState.errors.feedbackDiscussions?.[
+                                field.index
+                              ]?.obtainedMarks && (
+                                <p className="text-red-500 text-sm">
+                                  {
+                                    formState.errors.feedbackDiscussions[
+                                      field.index
+                                    ]?.obtainedMarks?.message
+                                  }
+                                </p>
+                              )}
+                            </div>
 
                             {/* Remarks */}
                             <Input

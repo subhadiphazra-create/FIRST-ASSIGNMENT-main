@@ -9,6 +9,7 @@ import assignmentsReducer from "./assignmentSlice";
 import attendancesReducer from "./attendanceSlice";
 import activityReducer from "./activitySlice";
 import feedbackReducer from "./feedbackSlice";
+import userReducer from "./usersSlice";
 import mentorFeedbackReducer from "./mentorFeedbacksSlice"; // ✅ fixed import name
 import storage from "redux-persist/lib/storage";
 import { persistReducer, persistStore } from "redux-persist";
@@ -24,6 +25,7 @@ const rootReducer = combineReducers({
   activity: activityReducer,
   feedback: feedbackReducer,
   mentorFeedback: mentorFeedbackReducer, // ✅ matches your slice
+  users: userReducer,
 });
 
 // Persist config
@@ -32,6 +34,7 @@ const persistConfig = {
   storage,
   whitelist: [
     "training",
+    "users",
     "theme",
     "events",
     "plans",

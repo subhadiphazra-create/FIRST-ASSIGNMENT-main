@@ -206,7 +206,7 @@ export default function AddFeedbackDialog({
             {/* Discussions Accordion */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold">Feedback Discussions</h3>
+                <h3 className="font-semibold">Feedback Format</h3>
                 <Button
                   type="button"
                   variant="secondary"
@@ -216,7 +216,7 @@ export default function AddFeedbackDialog({
                     setDialogOpen(true);
                   }}
                 >
-                  Add Discussion
+                  Add Feedback Parameters
                 </Button>
               </div>
 

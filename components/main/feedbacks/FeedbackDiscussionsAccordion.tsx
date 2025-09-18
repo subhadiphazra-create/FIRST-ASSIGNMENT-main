@@ -1,9 +1,22 @@
 "use client";
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { FeedbackDiscussionLocal } from "./AddFedbackDialog";
+import { Pencil, Trash2 } from "lucide-react"; // ✅ Import icons
 
 type Props = {
   discussions: FeedbackDiscussionLocal[];
@@ -21,16 +34,23 @@ export default function FeedbackDiscussionsAccordion({
   onRemoveSubCategory,
 }: Props) {
   // Group discussions by category
-  const grouped = discussions.reduce<Record<string, FeedbackDiscussionLocal[]>>((acc, d) => {
-    acc[d.category] = acc[d.category] || [];
-    acc[d.category].push(d);
-    return acc;
-  }, {});
+  const grouped = discussions.reduce<Record<string, FeedbackDiscussionLocal[]>>(
+    (acc, d) => {
+      acc[d.category] = acc[d.category] || [];
+      acc[d.category].push(d);
+      return acc;
+    },
+    {}
+  );
 
   const categories = Object.keys(grouped);
 
   if (categories.length === 0) {
-    return <p className="text-sm text-muted-foreground">No discussions added yet.</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        No Feedback Parameters added yet.
+      </p>
+    );
   }
 
   return (
@@ -42,19 +62,21 @@ export default function FeedbackDiscussionsAccordion({
             <div className="flex gap-2">
               <Button
                 type="button"
-                size="sm"
+                size="icon"
                 variant="outline"
                 onClick={() => onEditCategory(category)}
               >
-                Edit
+                <Pencil className="h-4 w-4" />
+                <span className="sr-only">Edit</span>
               </Button>
               <Button
                 type="button"
-                size="sm"
+                size="icon"
                 variant="destructive"
                 onClick={() => onRemoveCategory(category)}
               >
-                Remove
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Remove</span>
               </Button>
             </div>
           </div>
@@ -64,7 +86,7 @@ export default function FeedbackDiscussionsAccordion({
               <TableHeader>
                 <TableRow>
                   <TableHead>#</TableHead>
-                  <TableHead>Subcategory</TableHead>
+                  <TableHead className="w-[90%]">Subcategory</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -76,19 +98,21 @@ export default function FeedbackDiscussionsAccordion({
                     <TableCell className="flex gap-2">
                       <Button
                         type="button"
-                        size="sm"
+                        size="icon"
                         variant="outline"
                         onClick={() => onEditSubCategory(d)}
                       >
-                        Edit
+                        <Pencil className="h-4 w-4" />
+                        <span className="sr-only">Edit</span>
                       </Button>
                       <Button
                         type="button"
-                        size="sm"
+                        size="icon"
                         variant="destructive"
                         onClick={() => onRemoveSubCategory(d.id)}
                       >
-                        Remove
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Remove</span>
                       </Button>
                     </TableCell>
                   </TableRow>

@@ -55,24 +55,26 @@ const mentorFeedbackSlice = createSlice({
       );
     },
 
+    // ✅ updated to accept multiple plans
     assignMentorsToFeedback: (
       state,
       action: PayloadAction<{
         feedbackId: string;
         traineeId: string[];
         trainerId: string[];
-        planId: string;
-        batchId: string;
+        planIds: string[];
       }>
     ) => {
-      const { feedbackId, traineeId, trainerId, planId, batchId } =
-        action.payload;
+      const { feedbackId, traineeId, trainerId, planIds } = action.payload;
       const feedback = state.feedbacks.find((f) => f.feedbackId === feedbackId);
       if (feedback) {
-        feedback.planId = planId;
-        feedback.batchId = batchId;
         feedback.traineeId = traineeId;
         feedback.trainerId = trainerId;
+
+        // if schema supports single planId, keep first, else store array
+        (feedback as any).planIds = planIds;
+        feedback.planId = planIds[0] ?? ""; // backward compatibility
+
         feedback.updatedAt = new Date().toISOString();
       }
     },
@@ -131,7 +133,6 @@ const mentorFeedbackSlice = createSlice({
       }
     },
 
-    // ✅ Update trainee marks + remarks + highestMarks
     updateTraineeDiscussionScore: (
       state,
       action: PayloadAction<{
@@ -158,7 +159,6 @@ const mentorFeedbackSlice = createSlice({
           (d) => d.id === discussionId
         );
         if (discussion) {
-          // ✅ Update highest marks if provided
           if (highestMarks !== undefined) {
             discussion.highestMarks = highestMarks;
           }

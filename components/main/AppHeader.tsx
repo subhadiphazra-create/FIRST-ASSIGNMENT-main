@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { Button } from "@/components/ui/button";
 import ThemeSwitcher from "./ThemeSwitcher";
+import { SwitchUser } from "./SwitchUser";
 
 export default function AppHeader() {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
@@ -20,9 +21,10 @@ export default function AppHeader() {
   return (
     <header className="w-full bg-background border-b flex items-end justify-end px-4 py-2">
       <div className="flex space-x-2">
+        <SwitchUser/>
         <ThemeSwitcher />
         <Button variant="ghost" size="sm">
-          Login
+          {/* Login */}
         </Button>
       </div>
     </header>

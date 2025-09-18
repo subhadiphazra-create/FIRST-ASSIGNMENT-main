@@ -77,10 +77,10 @@ export default function TrainerFeedbackSummary({
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>SubCategory</TableHead>
-                              <TableHead>Highest</TableHead>
-                              <TableHead>Obtained</TableHead>
-                              <TableHead>Remarks</TableHead>
+                              <TableHead className="w-[30%]">SubCategory</TableHead>
+                              <TableHead className="w-[20%]">Highest</TableHead>
+                              <TableHead className="w-[20%]">Obtained</TableHead>
+                              <TableHead className="w-[30%]">Remarks</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>

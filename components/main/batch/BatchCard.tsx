@@ -3,9 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BookCheck,
-  BookPlus,
   CheckCheck,
-  CirclePlus,
   Eye,
   FolderOpen,
   History,
@@ -15,14 +13,11 @@ import {
   Pencil,
   Percent,
   Route,
-  ScanEye,
   SendHorizonal,
-  SquarePen,
   SquarePlus,
   UserCheck,
   UserRoundCheck,
 } from "lucide-react";
-import { mockEmployees } from "@/constants";
 import { Batch } from "@/types/type";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -32,10 +27,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { findNameById } from "@/lib/employeeUtils";
 import { useRouter } from "next/navigation";
 import ViewAssignmentDialog from "@/components/calendar/components/dialogs/view-assignment-dialog";
-import EditTrainerFeedbackDialog from "../eidtTrainerFeedback/EditTrainerFeedbackDialog";
 import TrainerFeedbackSummary from "../eidtTrainerFeedback/TrainerFeedbackSummary";
 
 interface BatchCardProps {
@@ -49,7 +44,6 @@ export default function BatchCard({ batch }: BatchCardProps) {
   const [showMarksDialog, setShowMarksDialog] = useState(false);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [showAddAssgDialog, setShowAddAssgDialog] = useState(false);
-  const [showAttandanceDialog, setShowAttandanceDialog] = useState(false);
   const [traineeId, setTraineeId] = useState("");
 
   const router = useRouter();
@@ -135,33 +129,64 @@ export default function BatchCard({ batch }: BatchCardProps) {
                     {findNameById(trainee)}
                   </p>
                   <div className="flex gap-2">
-                    <Button
-                      onClick={() => setShowHistoryDialog(true)}
-                      className="bg-transparent border text-black dark:text-white hover:bg-slate-100 dark:hover:bg-black"
-                    >
-                      <History />
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setShowEditDialog(true);
-                        setTraineeId(trainee);
-                      }}
-                      className="bg-transparent border text-black dark:text-white hover:bg-slate-100 dark:hover:bg-black"
-                    >
-                      <Pencil />
-                    </Button>
-                    <Button
-                      onClick={() => setShowMarksDialog(true)}
-                      className="bg-transparent border text-black dark:text-white hover:bg-slate-100 dark:hover:bg-black"
-                    >
-                      <NotebookPen />
-                    </Button>
-                    <Button
-                      onClick={() => setShowFeedbackDialog(true)}
-                      className="bg-transparent border text-black dark:text-white hover:bg-slate-100 dark:hover:bg-black"
-                    >
-                      <Eye />
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            onClick={() => setShowHistoryDialog(true)}
+                            className="bg-transparent border text-black dark:text-white hover:bg-slate-100 dark:hover:bg-black"
+                          >
+                            <History />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>View History</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            onClick={() => {
+                              setShowEditDialog(true);
+                              setTraineeId(trainee);
+                            }}
+                            className="bg-transparent border text-black dark:text-white hover:bg-slate-100 dark:hover:bg-black"
+                          >
+                            <Pencil />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Feedback Summary</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            onClick={() => setShowMarksDialog(true)}
+                            className="bg-transparent border text-black dark:text-white hover:bg-slate-100 dark:hover:bg-black"
+                          >
+                            <NotebookPen />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>View Marks</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            onClick={() => setShowFeedbackDialog(true)}
+                            className="bg-transparent border text-black dark:text-white hover:bg-slate-100 dark:hover:bg-black"
+                          >
+                            <Eye />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>View Feedback History</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </div>
                 <hr />
@@ -213,7 +238,6 @@ export default function BatchCard({ batch }: BatchCardProps) {
           isOpen={showEditDialog}
           traineeId={traineeId}
           onClose={() => setShowEditDialog(false)}
-          batch={batch} // 👈 pass batch
         />
       )}
     </>

@@ -33,11 +33,31 @@ export default function TrainerFeedbackSummary({
   isOpen,
   onClose,
 }: Props) {
-  const mentorFeedbacks = useSelector((state: RootState) =>
+  const currentUserId = useSelector(
+    (state: RootState) => state.users.selectedUserId
+  );
+
+  // ✅ Step 1: filter feedbacks for trainee
+  const rawFeedbacks = useSelector((state: RootState) =>
     state.mentorFeedback.feedbacks.filter((f) =>
       f.traineeId?.includes(traineeId)
     )
   );
+
+  // ✅ Step 2: keep only discussions where current user has updated traineeDiscussions
+  const mentorFeedbacks = rawFeedbacks
+    .map((fb) => {
+      const filteredDiscussions = fb.feedbackDiscussions?.filter((d) =>
+        d.traineeDiscussions?.some(
+          (t) => t.traineeId === traineeId && t.updatedBy === currentUserId
+        )
+      );
+
+      if (!filteredDiscussions || filteredDiscussions.length === 0) return null;
+
+      return { ...fb, feedbackDiscussions: filteredDiscussions };
+    })
+    .filter(Boolean);
 
   const [editingFeedback, setEditingFeedback] = useState<string | null>(null);
 
@@ -62,7 +82,7 @@ export default function TrainerFeedbackSummary({
 
         {mentorFeedbacks.length === 0 ? (
           <p className="text-gray-500">
-            No feedback assigned for this trainee.
+            No feedback assigned for this trainee by you.
           </p>
         ) : (
           <Accordion type="multiple" className="w-full">
@@ -77,7 +97,9 @@ export default function TrainerFeedbackSummary({
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead className="w-[30%]">SubCategory</TableHead>
+                              <TableHead className="w-[30%]">
+                                SubCategory
+                              </TableHead>
                               <TableHead className="w-[20%]">Highest</TableHead>
                               <TableHead className="w-[20%]">Obtained</TableHead>
                               <TableHead className="w-[30%]">Remarks</TableHead>
@@ -85,19 +107,23 @@ export default function TrainerFeedbackSummary({
                           </TableHeader>
                           <TableBody>
                             {items.map((d) => {
-                              const traineeScore =
-                                d.traineeDiscussions?.find(
-                                  (t) => t.traineeId === traineeId
-                                );
+                              const traineeScore = d.traineeDiscussions?.find(
+                                (t) =>
+                                  t.traineeId === traineeId &&
+                                  t.updatedBy === currentUserId
+                              );
+
+                              if (!traineeScore) return null;
+
                               return (
                                 <TableRow key={d.id}>
                                   <TableCell>{d.subCategory}</TableCell>
                                   <TableCell>{d.highestMarks ?? "-"}</TableCell>
                                   <TableCell>
-                                    {traineeScore?.obtainedMarks ?? "-"}
+                                    {traineeScore.obtainedMarks ?? "-"}
                                   </TableCell>
                                   <TableCell>
-                                    {traineeScore?.remarks ?? "-"}
+                                    {traineeScore.remarks ?? "-"}
                                   </TableCell>
                                 </TableRow>
                               );
@@ -126,7 +152,7 @@ export default function TrainerFeedbackSummary({
             isOpen={!!editingFeedback}
             onClose={() => setEditingFeedback(null)}
             feedbackId={editingFeedback}
-            traineeId={traineeId} // ✅ pass trainee
+            traineeId={traineeId}
           />
         )}
       </DialogContent>

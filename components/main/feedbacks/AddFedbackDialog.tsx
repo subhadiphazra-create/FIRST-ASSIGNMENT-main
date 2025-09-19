@@ -6,19 +6,39 @@ import { v4 as uuidv4 } from "uuid";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { addMentorFeedback, updateMentorFeedback } from "@/store/mentorFeedbacksSlice";
+import {
+  addMentorFeedback,
+  updateMentorFeedback,
+} from "@/store/mentorFeedbacksSlice";
 import { feedbackSchema, TFeedbackForm } from "@/schemas/feedbackSchema";
 import { TrainingPlan } from "@/types/type";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
 import AddFeedbackFormat, { TFeedbackDetailsForm } from "./AddFeedbackFormat";
 import { SmartSelect } from "@/components/ui/multi-select";
 import FeedbackDiscussionsAccordion from "./FeedbackDiscussionsAccordion";
 import ConfirmDialog from "./ConfirmDialog";
-
+import { Card, CardContent } from "@/components/ui/card";
+import { findPlanNameById } from "@/lib/findPlanNameById";
+import { findNameById } from "@/lib/employeeUtils";
+import AssignMentorsDialog from "./AssignMentors";
+import { mockEmployees } from "@/constants";
+import { Pencil } from "lucide-react";
 
 export interface FeedbackDiscussionLocal {
   id: string;
@@ -36,6 +56,7 @@ type Props = {
 
 export default function AddFeedbackDialog({
   feedback,
+  plans,
   mode = "create",
   isOpen,
   onClose,
@@ -44,12 +65,19 @@ export default function AddFeedbackDialog({
 
   const [discussions, setDiscussions] = useState<FeedbackDiscussionLocal[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingDiscussion, setEditingDiscussion] = useState<FeedbackDiscussionLocal | null>(null);
+  const [editingDiscussion, setEditingDiscussion] =
+    useState<FeedbackDiscussionLocal | null>(null);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
 
   // confirm dialog
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pendingRemove, setPendingRemove] = useState<{ type: "category" | "discussion"; id: string } | null>(null);
+  const [pendingRemove, setPendingRemove] = useState<{
+    type: "category" | "discussion";
+    id: string;
+  } | null>(null);
+
+  // edit assignee details dialog
+  const [editOpen, setEditOpen] = useState(false);
 
   const form = useForm<TFeedbackForm>({
     resolver: zodResolver(feedbackSchema),
@@ -59,6 +87,7 @@ export default function AddFeedbackDialog({
       status: "Inactive",
       traineeId: [],
       trainerId: [],
+      planIds: [],
       feedbackDetails: undefined,
       feedbackDiscussions: [],
       updatedAt: new Date().toISOString(),
@@ -94,7 +123,9 @@ export default function AddFeedbackDialog({
     if (mode === "create") {
       dispatch(addMentorFeedback(payload));
     } else {
-      dispatch(updateMentorFeedback({ feedbackId: data.feedbackId, data: payload }));
+      dispatch(
+        updateMentorFeedback({ feedbackId: data.feedbackId, data: payload })
+      );
     }
 
     onClose();
@@ -103,6 +134,9 @@ export default function AddFeedbackDialog({
       feedbackId: uuidv4(),
       feedbackName: "",
       status: "Inactive",
+      traineeId: [],
+      trainerId: [],
+      planIds: [],
       feedbackDetails: undefined,
       feedbackDiscussions: [],
       updatedAt: new Date().toISOString(),
@@ -114,27 +148,35 @@ export default function AddFeedbackDialog({
   const handleAddDiscussion = (details: TFeedbackDetailsForm) => {
     setDiscussions((prev) => [
       ...prev,
-      { id: uuidv4(), category: details.feedbackCategory, subCategory: details.feedbackSubCategory },
+      {
+        id: uuidv4(),
+        category: details.feedbackCategory,
+        subCategory: details.feedbackSubCategory,
+      },
     ]);
     setDialogOpen(false);
   };
 
   const handleUpdateDiscussion = (details: TFeedbackDetailsForm) => {
     if (editingDiscussion) {
-      // update subcategory
       setDiscussions((prev) =>
         prev.map((d) =>
           d.id === editingDiscussion.id
-            ? { ...d, category: details.feedbackCategory, subCategory: details.feedbackSubCategory }
+            ? {
+                ...d,
+                category: details.feedbackCategory,
+                subCategory: details.feedbackSubCategory,
+              }
             : d
         )
       );
     }
     if (editingCategory) {
-      // update category name only
       setDiscussions((prev) =>
         prev.map((d) =>
-          d.category === editingCategory ? { ...d, category: details.feedbackCategory } : d
+          d.category === editingCategory
+            ? { ...d, category: details.feedbackCategory }
+            : d
         )
       );
     }
@@ -148,7 +190,9 @@ export default function AddFeedbackDialog({
       if (pendingRemove.type === "discussion") {
         setDiscussions((prev) => prev.filter((d) => d.id !== pendingRemove.id));
       } else {
-        setDiscussions((prev) => prev.filter((d) => d.category !== pendingRemove.id));
+        setDiscussions((prev) =>
+          prev.filter((d) => d.category !== pendingRemove.id)
+        );
       }
     }
     setConfirmOpen(false);
@@ -159,7 +203,9 @@ export default function AddFeedbackDialog({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="w-full md:min-w-4xl rounded-2xl max-h-[90%] overflow-y-auto scroll-bar-hide">
         <DialogHeader>
-          <DialogTitle>{mode === "create" ? "Create Feedback" : "Edit Feedback"}</DialogTitle>
+          <DialogTitle>
+            {mode === "create" ? "Create Feedback" : "Edit Feedback"}
+          </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -243,6 +289,45 @@ export default function AddFeedbackDialog({
               />
             </div>
 
+            {/* Assignee Details Card */}
+            <Card>
+              <CardContent className="space-y-2 relative">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-semibold">Assignee Details</h4>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditOpen(true)}
+                  >
+                    <Pencil/>
+                  </Button>
+                </div>
+                <p>
+                  <strong>Plans:</strong>{" "}
+                  {feedback?.planIds
+                    ?.map((id: string) => findPlanNameById(id, plans))
+                    .join(", ") || "—"}
+                </p>
+                <p>
+                  <strong>Trainees:</strong>{" "}
+                  {feedback?.traineeId?.length
+                    ? feedback.traineeId
+                        .map((id) => findNameById(id))
+                        .join(", ")
+                    : "—"}
+                </p>
+                <p>
+                  <strong>Mentors:</strong>{" "}
+                  {feedback?.trainerId?.length
+                    ? feedback.trainerId
+                        .map((id) => findNameById(id))
+                        .join(", ")
+                    : "—"}
+                </p>
+              </CardContent>
+            </Card>
+
             <Button type="submit" className="w-full">
               {mode === "create" ? "Save Feedback" : "Update Feedback"}
             </Button>
@@ -254,16 +339,25 @@ export default function AddFeedbackDialog({
           <AddFeedbackFormat
             open={dialogOpen}
             onOpenChange={setDialogOpen}
-            existingCategories={[...new Set(discussions.map((d) => d.category))]}
+            existingCategories={[
+              ...new Set(discussions.map((d) => d.category)),
+            ]}
             initialData={
               editingDiscussion
-                ? { feedbackCategory: editingDiscussion.category, feedbackSubCategory: editingDiscussion.subCategory }
+                ? {
+                    feedbackCategory: editingDiscussion.category,
+                    feedbackSubCategory: editingDiscussion.subCategory,
+                  }
                 : editingCategory
                 ? { feedbackCategory: editingCategory, feedbackSubCategory: "" }
                 : undefined
             }
-            onlyEditCategory={!!editingCategory} // ✅ pass prop
-            onSave={editingDiscussion || editingCategory ? handleUpdateDiscussion : handleAddDiscussion}
+            onlyEditCategory={!!editingCategory}
+            onSave={
+              editingDiscussion || editingCategory
+                ? handleUpdateDiscussion
+                : handleAddDiscussion
+            }
           />
         )}
 
@@ -274,6 +368,13 @@ export default function AddFeedbackDialog({
           onConfirm={confirmRemove}
           title="Remove item"
           description="Are you sure you want to remove this? This action cannot be undone."
+        />
+        {/* Edit Assignee Dialog */}
+        <AssignMentorsDialog
+          isOpen={editOpen}
+          onClose={() => setEditOpen(false)}
+          employees={mockEmployees}
+          editFeedbackId={feedback?.feedbackId}
         />
       </DialogContent>
     </Dialog>

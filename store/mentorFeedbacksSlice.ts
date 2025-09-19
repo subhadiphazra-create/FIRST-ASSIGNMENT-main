@@ -19,6 +19,8 @@ const mentorFeedbackSlice = createSlice({
         traineeId: action.payload.traineeId ?? [],
         trainerId: action.payload.trainerId ?? [],
         feedbackDiscussions: action.payload.feedbackDiscussions ?? [],
+        planIds: (action.payload as any).planIds ?? [],
+        planId: (action.payload as any).planId ?? "", // backward compat
         createdAt: action.payload.createdAt ?? new Date().toISOString(),
         updatedAt: action.payload.updatedAt ?? new Date().toISOString(),
       });
@@ -28,13 +30,11 @@ const mentorFeedbackSlice = createSlice({
       state,
       action: PayloadAction<{
         feedbackId: string;
-        data: Partial<TFeedbackForm>;
+        data: Partial<TFeedbackForm> & { planIds?: string[]; planId?: string };
       }>
     ) => {
       const { feedbackId, data } = action.payload;
-      const index = state.feedbacks.findIndex(
-        (f) => f.feedbackId === feedbackId
-      );
+      const index = state.feedbacks.findIndex((f) => f.feedbackId === feedbackId);
       if (index !== -1) {
         state.feedbacks[index] = {
           ...state.feedbacks[index],
@@ -42,20 +42,18 @@ const mentorFeedbackSlice = createSlice({
           traineeId: data.traineeId ?? state.feedbacks[index].traineeId,
           trainerId: data.trainerId ?? state.feedbacks[index].trainerId,
           feedbackDiscussions:
-            data.feedbackDiscussions ??
-            state.feedbacks[index].feedbackDiscussions,
+            data.feedbackDiscussions ?? state.feedbacks[index].feedbackDiscussions,
+          planIds: data.planIds ?? (state.feedbacks[index] as any).planIds ?? [],
+          planId: data.planId ?? (state.feedbacks[index] as any).planId ?? "",
           updatedAt: new Date().toISOString(),
         };
       }
     },
 
     deleteMentorFeedback: (state, action: PayloadAction<string>) => {
-      state.feedbacks = state.feedbacks.filter(
-        (f) => f.feedbackId !== action.payload
-      );
+      state.feedbacks = state.feedbacks.filter((f) => f.feedbackId !== action.payload);
     },
 
-    // ✅ updated to accept multiple plans
     assignMentorsToFeedback: (
       state,
       action: PayloadAction<{
@@ -70,21 +68,15 @@ const mentorFeedbackSlice = createSlice({
       if (feedback) {
         feedback.traineeId = traineeId;
         feedback.trainerId = trainerId;
-
-        // if schema supports single planId, keep first, else store array
         (feedback as any).planIds = planIds;
-        feedback.planId = planIds[0] ?? ""; // backward compatibility
-
+        feedback.planId = planIds[0] ?? ""; // backward compat
         feedback.updatedAt = new Date().toISOString();
       }
     },
 
     addFeedbackDiscussion: (
       state,
-      action: PayloadAction<{
-        feedbackId: string;
-        discussion: TFeedbackDiscussion;
-      }>
+      action: PayloadAction<{ feedbackId: string; discussion: TFeedbackDiscussion }>
     ) => {
       const { feedbackId, discussion } = action.payload;
       const feedback = state.feedbacks.find((f) => f.feedbackId === feedbackId);
@@ -106,9 +98,7 @@ const mentorFeedbackSlice = createSlice({
       const { feedbackId, discussionId, data } = action.payload;
       const feedback = state.feedbacks.find((f) => f.feedbackId === feedbackId);
       if (feedback && feedback.feedbackDiscussions) {
-        const idx = feedback.feedbackDiscussions.findIndex(
-          (d) => d.id === discussionId
-        );
+        const idx = feedback.feedbackDiscussions.findIndex((d) => d.id === discussionId);
         if (idx !== -1) {
           feedback.feedbackDiscussions[idx] = {
             ...feedback.feedbackDiscussions[idx],
@@ -142,6 +132,7 @@ const mentorFeedbackSlice = createSlice({
         obtainedMarks?: number | null;
         remarks?: string;
         highestMarks?: number | null;
+        updatedBy?: string | null;
       }>
     ) => {
       const {
@@ -151,21 +142,21 @@ const mentorFeedbackSlice = createSlice({
         obtainedMarks,
         remarks,
         highestMarks,
+        updatedBy,
       } = action.payload;
 
       const feedback = state.feedbacks.find((f) => f.feedbackId === feedbackId);
       if (feedback && feedback.feedbackDiscussions) {
-        const discussion = feedback.feedbackDiscussions.find(
-          (d) => d.id === discussionId
-        );
+        const discussion = feedback.feedbackDiscussions.find((d) => d.id === discussionId);
         if (discussion) {
           if (highestMarks !== undefined) {
             discussion.highestMarks = highestMarks;
           }
 
           discussion.traineeDiscussions = discussion.traineeDiscussions || [];
+
           const idx = discussion.traineeDiscussions.findIndex(
-            (t) => t.traineeId === traineeId
+            (t) => t.traineeId === traineeId && t.updatedBy === updatedBy
           );
 
           if (idx !== -1) {
@@ -173,12 +164,14 @@ const mentorFeedbackSlice = createSlice({
               ...discussion.traineeDiscussions[idx],
               obtainedMarks,
               remarks,
+              updatedBy,
             };
           } else {
             discussion.traineeDiscussions.push({
               traineeId,
               obtainedMarks,
               remarks,
+              updatedBy,
             });
           }
 

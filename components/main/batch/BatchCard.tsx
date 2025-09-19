@@ -20,18 +20,25 @@ import {
 } from "lucide-react";
 import { Batch } from "@/types/type";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { findNameById } from "@/lib/employeeUtils";
 import { useRouter } from "next/navigation";
 import ViewAssignmentDialog from "@/components/calendar/components/dialogs/view-assignment-dialog";
 import TrainerFeedbackSummary from "../eidtTrainerFeedback/TrainerFeedbackSummary";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
 
 interface BatchCardProps {
   batch: Batch;
@@ -50,6 +57,12 @@ export default function BatchCard({ batch }: BatchCardProps) {
   const checkIsComplete = (endDate: string) => {
     return new Date() > new Date(endDate);
   };
+
+  const user = useSelector((state: RootState) => state.users.selectedUserId);
+
+  useEffect(() => {
+    console.log(user);
+  }, []);
 
   const batchId = batch.batchId;
 

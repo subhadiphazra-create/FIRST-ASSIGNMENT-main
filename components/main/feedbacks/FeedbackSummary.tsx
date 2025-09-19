@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/table";
 import { findPlanNameById } from "@/lib/findPlanNameById";
 import { findNameById } from "@/lib/employeeUtils";
-// import EditFeedbackDialog from "./EditFeedbackDialog"; // adjust path if needed
 
 type PlanInfo = {
   id: string;
@@ -43,6 +42,7 @@ export default function PlanFeedbacksList({ plans }: Props) {
     traineeId: string | null;
   }>({ open: false, feedbackId: null, traineeId: null });
 
+  // ✅ group feedbacks by plan
   const groupedByPlan = useMemo(() => {
     const map = new Map<
       string,
@@ -116,6 +116,7 @@ export default function PlanFeedbacksList({ plans }: Props) {
                   ) : (
                     <Accordion type="multiple" className="w-full">
                       {traineesArray.map((traineeId) => {
+                        // ✅ filter only feedbacks for this trainee
                         const traineeFeedbacks = fbs.filter((fb) =>
                           (fb.traineeId ?? []).includes(traineeId)
                         );
@@ -141,9 +142,90 @@ export default function PlanFeedbacksList({ plans }: Props) {
 
                             <AccordionContent>
                               <div className="space-y-4">
+                                {/* ✅ keep feedbacks separate */}
                                 {traineeFeedbacks.map((fb) => {
-                                  const isSelfAssigned =
-                                    (fb.trainerId ?? []).includes(traineeId);
+                                  const isSelfAssigned = (
+                                    fb.trainerId ?? []
+                                  ).includes(traineeId);
+
+                                  // ✅ group discussions by category per feedback
+                                  const categoryMap = new Map<
+                                    string,
+                                    {
+                                      highestMarks: number[];
+                                      obtainedMarks: number[];
+                                    }
+                                  >();
+
+                                  (fb.feedbackDiscussions ?? []).forEach(
+                                    (disc: any) => {
+                                      const category =
+                                        disc.category ?? "Uncategorized";
+
+                                      if (!categoryMap.has(category)) {
+                                        categoryMap.set(category, {
+                                          highestMarks: [],
+                                          obtainedMarks: [],
+                                        });
+                                      }
+
+                                      if (disc.highestMarks) {
+                                        categoryMap
+                                          .get(category)!
+                                          .highestMarks.push(disc.highestMarks);
+                                      }
+
+                                      (disc.traineeDiscussions ?? [])
+                                        .filter(
+                                          (td: any) =>
+                                            td.traineeId === traineeId
+                                        )
+                                        .forEach((td: any) => {
+                                          if (td.obtainedMarks != null) {
+                                            categoryMap
+                                              .get(category)!
+                                              .obtainedMarks.push(
+                                                td.obtainedMarks
+                                              );
+                                          }
+                                        });
+                                    }
+                                  );
+
+                                  const categoryRows = Array.from(
+                                    categoryMap.entries()
+                                  ).map(([category, values]) => {
+                                    const avgHighest =
+                                      values.highestMarks.length > 0
+                                        ? values.highestMarks.reduce(
+                                            (a, b) => a + b,
+                                            0
+                                          ) / values.highestMarks.length
+                                        : 0;
+
+                                    const avgObtained =
+                                      values.obtainedMarks.length > 0
+                                        ? values.obtainedMarks.reduce(
+                                            (a, b) => a + b,
+                                            0
+                                          ) / values.obtainedMarks.length
+                                        : 0;
+
+                                    const percentage =
+                                      avgHighest > 0
+                                        ? (
+                                            (avgObtained / avgHighest) *
+                                            100
+                                          ).toFixed(1)
+                                        : "—";
+
+                                    return {
+                                      category,
+                                      avgHighest: avgHighest.toFixed(1),
+                                      avgObtained: avgObtained.toFixed(1),
+                                      percentage,
+                                    };
+                                  });
 
                                   return (
                                     <div
@@ -192,80 +274,55 @@ export default function PlanFeedbacksList({ plans }: Props) {
                                         <Table>
                                           <TableHeader>
                                             <TableRow>
+                                              <TableHead>Category</TableHead>
                                               <TableHead>
-                                                Sub Category
+                                                Avg Highest Marks
                                               </TableHead>
                                               <TableHead>
-                                                Highest Marks
+                                                Avg Obtained Marks
                                               </TableHead>
-                                              <TableHead>
-                                                Obtained Marks
-                                              </TableHead>
-                                              <TableHead>Remarks</TableHead>
+                                              <TableHead>Percentage</TableHead>
                                               <TableHead>
                                                 Assigned Mentors
                                               </TableHead>
                                             </TableRow>
                                           </TableHeader>
                                           <TableBody>
-                                            {(fb.feedbackDiscussions ?? []).map(
-                                              (disc: any) => {
-                                                const tDisc = (
-                                                  disc.traineeDiscussions ?? []
-                                                ).find(
-                                                  (td: any) =>
-                                                    td.traineeId === traineeId
-                                                );
-
-                                                const mentors =
-                                                  fb.trainerId ?? [];
-
-                                                return (
-                                                  <TableRow key={disc.id}>
-                                                    <TableCell>
-                                                      {disc.subCategory ??
-                                                        disc.category ??
-                                                        "—"}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                      {disc.highestMarks ?? "—"}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                      {tDisc?.obtainedMarks ??
-                                                        "—"}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                      {tDisc?.remarks ?? "—"}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                      {mentors.length === 0 ? (
-                                                        "—"
-                                                      ) : (
-                                                        <div className="flex flex-wrap gap-1">
-                                                          {mentors.map(
-                                                            (m: string) => (
-                                                              <span
-                                                                key={m}
-                                                                className={`text-xs px-2 py-0.5 rounded ${
-                                                                  m ===
-                                                                  traineeId
-                                                                    ? "bg-blue-100 text-blue-800"
-                                                                    : "bg-gray-100 text-gray-800"
-                                                                }`}
-                                                              >
-                                                                {findNameById(
-                                                                  m
-                                                                )}
-                                                              </span>
-                                                            )
-                                                          )}
-                                                        </div>
-                                                      )}
-                                                    </TableCell>
-                                                  </TableRow>
-                                                );
-                                              }
-                                            )}
+                                            {categoryRows.map((row) => (
+                                              <TableRow key={row.category}>
+                                                <TableCell>
+                                                  {row.category}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {row.avgHighest}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {row.avgObtained}
+                                                </TableCell>
+                                                <TableCell>
+                                                  {row.percentage}%
+                                                </TableCell>
+                                                <TableCell>
+                                                  {(fb.trainerId ?? []).length ===
+                                                  0 ? (
+                                                    "—"
+                                                  ) : (
+                                                    <div className="flex flex-wrap gap-1">
+                                                      {(
+                                                        fb.trainerId ?? []
+                                                      ).map((m: string) => (
+                                                        <span
+                                                          key={m}
+                                                          className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-800"
+                                                        >
+                                                          {findNameById(m)}
+                                                        </span>
+                                                      ))}
+                                                    </div>
+                                                  )}
+                                                </TableCell>
+                                              </TableRow>
+                                            ))}
                                           </TableBody>
                                         </Table>
                                       </div>
@@ -286,17 +343,7 @@ export default function PlanFeedbacksList({ plans }: Props) {
         </Accordion>
       )}
 
-      {editing.open && editing.feedbackId && editing.traineeId && (
-        // <EditFeedbackDialog
-        //   isOpen={editing.open}
-        //   onClose={() =>
-        //     setEditing({ open: false, feedbackId: null, traineeId: null })
-        //   }
-        //   feedbackId={editing.feedbackId}
-        //   traineeId={editing.traineeId}
-        // />
-        <></>
-      )}
+      {editing.open && editing.feedbackId && editing.traineeId && <></>}
     </div>
   );
 }

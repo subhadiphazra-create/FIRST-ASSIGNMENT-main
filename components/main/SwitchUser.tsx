@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "@/store";
 import { setSelectedUserId } from "@/store/usersSlice";
@@ -27,17 +28,23 @@ export function SwitchUser() {
     picturePath: emp.basicData.profilePicture,
   }));
 
+  // ✅ Set default to first user if nothing is selected
+  useEffect(() => {
+    if (!selectedUserId && users.length > 0) {
+      dispatch(setSelectedUserId(users[0].id));
+    }
+  }, [selectedUserId, users, dispatch]);
+
   return (
     <Select
-      value={selectedUserId ?? "all"}
+      value={selectedUserId || undefined}
       onValueChange={(val) => dispatch(setSelectedUserId(val))}
     >
       <SelectTrigger className="flex-1 md:w-48">
-        <SelectValue />
+        <SelectValue placeholder="Select a user" />
       </SelectTrigger>
 
       <SelectContent align="end">
-        {/* Individual users */}
         {users.map((user) => (
           <SelectItem key={user.id} value={user.id} className="flex-1">
             <div className="flex items-center gap-2">
@@ -50,7 +57,7 @@ export function SwitchUser() {
                   {user.fname[0]}
                 </AvatarFallback>
               </Avatar>
-              <p className="truncate">{user.fname + user.lname}</p>
+              <p className="truncate">{user.fname + " " + user.lname}</p>
             </div>
           </SelectItem>
         ))}

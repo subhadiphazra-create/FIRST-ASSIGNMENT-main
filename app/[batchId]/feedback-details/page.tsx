@@ -128,6 +128,7 @@ const FeedbackPage = () => {
       {/* Assign Mentors Dialog */}
       {showAssignDialog && (
         <AssignMentorsDialog
+          editFeedbackId=""
           isOpen={showAssignDialog}
           onClose={() => setShowAssignDialog(false)}
           employees={mockEmployees} // from constants or API

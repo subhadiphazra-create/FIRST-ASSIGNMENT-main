@@ -34,6 +34,7 @@ import { Switch } from "@/components/ui/switch";
 import { assignMentorsToFeedback } from "@/store/mentorFeedbacksSlice";
 import { RootState } from "@/store";
 import { useParams } from "next/navigation";
+import { useEffect } from "react";
 
 // ✅ Schema
 const rowSchema = z.object({
@@ -54,12 +55,14 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   employees: any[];
+  editFeedbackId: string | undefined;
 };
 
 export default function AssignMentorsDialog({
   isOpen,
   onClose,
   employees,
+  editFeedbackId,
 }: Props) {
   const dispatch = useDispatch();
   const feedbacks = useSelector(
@@ -81,18 +84,31 @@ export default function AssignMentorsDialog({
 
   console.log(batchMentors);
 
-  const form = useForm<TAssignForm>({
-    resolver: zodResolver(assignSchema),
-    defaultValues: {
-      rows: employees
+  const editFeedback = feedbacks.find((f) => f.feedbackId === editFeedbackId);
+
+  // If editing: only load rows from this feedback
+  const defaultRows = editFeedback
+    ? editFeedback.traineeId.map((tid) => ({
+        traineeId: tid,
+        trainerIds: [...editFeedback.trainerId],
+        planIds: [...(editFeedback.planIds ?? [])],
+        feedbackId: editFeedback.feedbackId,
+        isSelfMentor: editFeedback.trainerId.includes(tid), // mark if trainee was also a mentor
+      }))
+    : employees
         .filter((e) => e.basicData.role?.toLowerCase() === "trainee")
         .map((t) => ({
           traineeId: t.userId,
-          trainerIds: [...batchMentors], // ✅ Pre-populated mentors
+          trainerIds: [...batchMentors],
           planIds: [],
           feedbackId: "",
           isSelfMentor: false,
-        })),
+        }));
+
+  const form = useForm<TAssignForm>({
+    resolver: zodResolver(assignSchema),
+    defaultValues: {
+      rows: defaultRows,
     },
   });
 
@@ -119,6 +135,10 @@ export default function AssignMentorsDialog({
     onClose();
     form.reset();
   };
+
+  useEffect(() => {
+    form.reset({ rows: defaultRows });
+  }, [editFeedbackId, employees, batchMentors]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

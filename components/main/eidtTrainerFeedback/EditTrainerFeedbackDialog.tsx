@@ -22,8 +22,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { updateTraineeDiscussionScore } from "@/store/mentorFeedbacksSlice";
 
-// ✅ Schema for editing
-// ✅ Schema for editing with validations
 const editDiscussionSchema = z
   .object({
     id: z.string(),
@@ -43,6 +41,7 @@ const editDiscussionSchema = z
       .optional(),
 
     remarks: z.string().optional(),
+    updatedBy: z.string().optional(),
   })
   .refine(
     (data) =>
@@ -51,7 +50,7 @@ const editDiscussionSchema = z
         : data.obtainedMarks <= data.highestMarks,
     {
       message: "Obtained marks cannot be greater than highest marks",
-      path: ["obtainedMarks"], // highlight the obtainedMarks field
+      path: ["obtainedMarks"],
     }
   );
 
@@ -77,11 +76,18 @@ export default function EditFeedbackDialog({
 }: EditFeedbackDialogProps) {
   const dispatch = useDispatch();
 
+  const currentUserId = useSelector(
+    (state: RootState) => state.users.selectedUserId
+  );
+
   const feedback = useSelector((state: RootState) =>
     state.mentorFeedback.feedbacks.find((f) => f.feedbackId === feedbackId)
   );
 
-  const currentUser = useSelector((state:RootState) => state.users.selectedUserId );
+  // 🔒 Check mentor access
+  const hasAccess =
+    feedback?.trainerId?.includes(currentUserId) ||
+    feedback?.mentorId?.includes(currentUserId);
 
   const form = useForm<TEditFeedbackFormValues>({
     resolver: zodResolver(editFeedbackFormSchema),
@@ -95,10 +101,10 @@ export default function EditFeedbackDialog({
   const { control, register, handleSubmit, reset, formState } = form;
   const { isSubmitting } = formState;
 
-  const { fields, replace } = useFieldArray({
+  const { fields } = useFieldArray({
     control,
     name: "feedbackDiscussions",
-    keyName: "fieldId", // avoid conflict with `id`
+    keyName: "fieldId",
   });
 
   // 🔄 Reset form when feedback/trainee changes
@@ -112,9 +118,12 @@ export default function EditFeedbackDialog({
     }
 
     const mapped = (feedback.feedbackDiscussions ?? []).map((d) => {
+      // only get discussions made by THIS mentor
       const traineeDiscussion = d.traineeDiscussions?.find(
-        (t) => t.traineeId === traineeId
+        (t) =>
+          t.traineeId === traineeId && t.updatedBy === currentUserId // 🔑 filter by mentor
       );
+
       return {
         id: d.id,
         category: d.category,
@@ -125,7 +134,7 @@ export default function EditFeedbackDialog({
             ? traineeDiscussion?.obtainedMarks
             : null,
         remarks: traineeDiscussion?.remarks ?? "",
-        updatedBy:currentUser,
+        updatedBy: currentUserId,
       };
     });
 
@@ -133,9 +142,9 @@ export default function EditFeedbackDialog({
       feedbackId,
       feedbackDiscussions: mapped,
     });
-  }, [feedbackId, feedback, traineeId, reset]);
+  }, [feedbackId, feedback, traineeId, reset, currentUserId]);
 
-  // ✅ Submit handler (always uses discussion.id, not index)
+  // ✅ Submit handler
   const onSubmit = (data: TEditFeedbackFormValues) => {
     if (!data.feedbackDiscussions) {
       onClose();
@@ -146,19 +155,24 @@ export default function EditFeedbackDialog({
       dispatch(
         updateTraineeDiscussionScore({
           feedbackId: data.feedbackId,
-          discussionId: disc.id, // ✅ use ID not index
+          discussionId: disc.id,
           traineeId: traineeId || "",
           obtainedMarks:
             disc.obtainedMarks === undefined ? null : disc.obtainedMarks,
           remarks: disc.remarks ?? "",
           highestMarks:
             disc.highestMarks === undefined ? null : disc.highestMarks,
+          updatedBy: currentUserId, // 🔑 always set current mentor
         })
       );
     });
 
     onClose();
   };
+
+  if (!hasAccess) {
+    return null; // 🚫 no dialog for unauthorized mentors
+  }
 
   // ✅ Group fields by category (for UI only)
   const grouped: Record<string, typeof fields> = {};
